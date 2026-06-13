@@ -74,3 +74,8 @@ export default defineConfig([
 
 
 firebase deploy --only hosting:rider
+
+
+git add .
+git commit -m "save work on dev before switching"
+git push origin
