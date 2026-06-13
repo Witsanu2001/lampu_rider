@@ -71,3 +71,6 @@ export default defineConfig([
   },
 ])
 ```
+
+
+firebase deploy --only hosting:rider
