@@ -1,11 +1,25 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/shared/ui/BottomNav.tsx
+
 import { NavLink } from 'react-router-dom';
 import { menuConfig } from './menu';
 
-export default function BottomNav() {
+interface BottomNavProps {
+  user?: any;
+  isPaymentPage?: boolean;
+  hasPermission?: (item: any) => boolean;
+}
+
+export default function BottomNav({ user, isPaymentPage, hasPermission }: BottomNavProps) {
+  // 🌟 ถ้าไม่มี user ล็อกอินอยู่ หรืออยู่ในหน้าจ่ายเงิน จะซ่อนเมนูด้านล่าง
+  if (!user || isPaymentPage) return null;
+
+  // 🌟 กรองเมนูเฉพาะที่มีสิทธิ์เห็น (ถ้ามีการเช็คสิทธิ์)
+  const visibleMenu = hasPermission ? menuConfig.filter(hasPermission) : menuConfig;
+
   return (
     <nav className="fixed bottom-0 w-full max-w-md mx-auto bg-white border-t border-gray-200 flex justify-around items-center pb-safe pt-2 px-2 z-50 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
-      {menuConfig.map((item, index) => (
+      {visibleMenu.map((item, index) => (
         <NavLink
           key={index}
           to={item.to}

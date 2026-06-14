@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/shared/ui/App.tsx
 import { useEffect, useState } from 'react';
 import liff from '@line/liff';
@@ -14,11 +15,18 @@ import HomePage from '../../modules/home/HomePage';
 import JobsPage from '../../modules/Jobs/JobsPage';
 import HistoryPage from '../../modules/history/HistoryPage';
 
-function App() {
+// 🌟 ใส่ LIFF ID ของคุณให้ถูกต้อง
+const LIFF_ID = "2010209102-zHsx4M0r";
+
+export default function App() {
+  const [user, setUser] = useState<any>(() => {
+    const saved = localStorage.getItem('userData');
+    return saved ? JSON.parse(saved) : null;
+  });
+  
   const [isAuth, setIsAuth] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // ตรวจสอบว่าเป็น Localhost หรือไม่
   const isLocalhost = 
     window.location.hostname === 'localhost' || 
     window.location.hostname === '127.0.0.1';
@@ -26,27 +34,60 @@ function App() {
   useEffect(() => {
     if (isLocalhost) {
       // --- เคสที่ 1: รันบน Localhost (ใช้ Firebase Auth) ---
-      console.log("Running on Localhost: Bypassing LIFF and using Firebase Auth");
-      const unsubscribe = onAuthStateChanged(auth, (user) => {
-        if (user) {
-          setIsAuth(true); // ล็อกอิน Firebase สำเร็จ
+      const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+        if (firebaseUser) {
+          // 🌟 1. ดึง Token จาก Firebase และเก็บลง localStorage
+          const token = await firebaseUser.getIdToken();
+          localStorage.setItem('firebase_token', token);
+
+          // แปลงข้อมูล
+          const normalizedUser = {
+            uid: firebaseUser.uid,
+            email: firebaseUser.email,
+            displayName: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'Rider',
+            photoURL: firebaseUser.photoURL || '',
+            provider: 'firebase'
+          };
+
+          setUser(normalizedUser);
+          localStorage.setItem('userData', JSON.stringify(normalizedUser));
+          setIsAuth(true);
         } else {
-          setIsAuth(false); // ยังไม่ได้ล็อกอิน Firebase
+          setUser(null);
+          localStorage.removeItem('userData');
+          localStorage.removeItem('firebase_token'); // 🌟 เคลียร์ Token เมื่อ Logout
+          setIsAuth(false);
         }
         setLoading(false);
       });
       return () => unsubscribe();
+
     } else {
       // --- เคสที่ 2: รันบนระบบจริง/LINE App (ใช้ LIFF) ---
       const initLiff = async () => {
         try {
-          await liff.init({ liffId: "2010385468-Yj0pURp7" });
-          console.log("LIFF initialized!");
+          await liff.init({ liffId: LIFF_ID });
           
           if (!liff.isLoggedIn()) {
             liff.login();
           } else {
-            setIsAuth(true); // ล็อกอิน LINE สำเร็จ
+            // 🌟 2. ดึง Token ของ LINE และเก็บลง localStorage
+            const lineToken = liff.getIDToken();
+            if (lineToken) {
+              localStorage.setItem('auth_token', lineToken);
+            }
+
+            const profile = await liff.getProfile();
+            const normalizedUser = {
+              uid: profile.userId,
+              displayName: profile.displayName,
+              photoURL: profile.pictureUrl || '',
+              provider: 'line'
+            };
+
+            setUser(normalizedUser);
+            localStorage.setItem('userData', JSON.stringify(normalizedUser));
+            setIsAuth(true);
           }
         } catch (error) {
           console.error("LIFF Init Error:", error);
@@ -68,18 +109,15 @@ function App() {
 
   return (
     <BrowserRouter>
-      {/* โครงสร้างจำลองหน้าจอโทรศัพท์ (Mobile Layout Container) */}
       <div className="mx-auto max-w-md w-full min-h-[100svh] bg-gray-50 flex flex-col relative shadow-2xl overflow-hidden">
         
-        {/* เช็คสิทธิ์: ถ้าเป็น localhost และยังไม่ผ่านการล็อกอิน ให้แสดงหน้า LocalLogin */}
         {!isAuth && isLocalhost ? (
           <LocalLogin />
         ) : (
           <>
-            {/* แถบด้านบน */}
-            <Header />
+            {/* 🌟 3. ส่ง user และ setUser เข้าไปให้ Header */}
+            <Header user={user} setUser={setUser} />
             
-            {/* พื้นที่เนื้อหาหลัก */}
             <main className="flex-1 overflow-y-auto pb-20 scroll-smooth">
               <Routes>
                 <Route path="/" element={<HomePage />} />
@@ -88,8 +126,12 @@ function App() {
               </Routes>
             </main>
 
-            {/* แถบเมนูด้านล่าง */}
-            <BottomNav />
+            {/* 🌟 4. ส่ง user เข้าไปให้ BottomNav */}
+            <BottomNav 
+              user={user} 
+              isPaymentPage={false} 
+              hasPermission={() => true} 
+            />
           </>
         )}
         
@@ -97,5 +139,3 @@ function App() {
     </BrowserRouter>
   );
 }
-
-export default App;
