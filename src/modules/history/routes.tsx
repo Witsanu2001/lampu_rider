@@ -1,6 +1,6 @@
 import { Route } from "react-router-dom";
 import HistoryPage from "./HistoryPage";
 
-export const HistoryRoutes = () => (
-  <Route key="jobs" path="/" element={<HistoryPage />} />
+export const historyRoutes = () => (
+  <Route key="history" path="/" element={<HistoryPage />} />
 );

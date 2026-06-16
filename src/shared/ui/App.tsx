@@ -11,9 +11,9 @@ import BottomNav from './BottomNav';
 import LocalLogin from './LocalLogin';
 
 // นำเข้าหน้า Page จาก Modules
-import HomePage from '../../modules/home/HomePage';
-import JobsPage from '../../modules/Jobs/JobsPage';
 import HistoryPage from '../../modules/history/HistoryPage';
+import StovesPage from '../../modules/Stove/StovesPage';
+import JobsPage from '../../modules/Job/JobsPage';
 
 // 🌟 ใส่ LIFF ID ของคุณให้ถูกต้อง
 const LIFF_ID = "2010209102-zHsx4M0r";
@@ -120,9 +120,9 @@ export default function App() {
             
             <main className="flex-1 overflow-y-auto pb-20 scroll-smooth">
               <Routes>
-                <Route path="/" element={<HomePage />} />
-                <Route path="/jobs" element={<JobsPage />} />
+                <Route path="/" element={<JobsPage />} />
                 <Route path="/history" element={<HistoryPage />} />
+                <Route path="/stove" element={<StovesPage />} />
               </Routes>
             </main>
 

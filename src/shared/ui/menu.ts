@@ -1,8 +1,8 @@
 // src/shared/ui/menu.ts
 
-import Home from "../../assets/home.png";
-import Order from "../../assets/orderCheck.png";
-import UserSetting from "../../assets/user-setting.png";
+import Delivery from "../../assets/delivery.png";
+import History from "../../assets/history.png";
+import Stove from "../../assets/stove.png";
 
 export interface MenuItem {
   label: string;
@@ -16,18 +16,18 @@ export const menuConfig: MenuItem[] = [
     label: "หน้าแรก",
     to: "/",
     roles: ["rider"],
-    iconUrl: Home,
-  },
-  {
-    label: "ออเดอร์",
-    to: "/jobs",
-    roles: ["rider"],
-    iconUrl: Order,
+    iconUrl: Delivery,
   },
   {
     label: "ประวัติ",
     to: "/history",
     roles: ["rider"],
-    iconUrl: UserSetting,
+    iconUrl: History,
   },
+  {
+    label: "เก็บเตา",
+    to: "/stove",
+    roles: ["rider"],
+    iconUrl: Stove,
+  }
 ];
