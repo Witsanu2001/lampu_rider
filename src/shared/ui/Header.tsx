@@ -25,7 +25,7 @@ export default function Header({ user }: HeaderProps) {
         {/* 🌟 เพิ่มส่วนแสดงชื่อไรเดอร์ */}
         <div className="flex flex-col">
           <span className="font-bold text-sm text-gray-800">
-            {user?.displayName || "ผู้ขับขี่"}
+            {user?.displayName || "ผู้ขับขี่x"}
           </span>
         </div>
       </div>
