@@ -69,7 +69,7 @@ export default function App() {
           await liff.init({ liffId: LIFF_ID });
           
           if (!liff.isLoggedIn()) {
-            liff.login();
+            liff.login({ redirectUri: window.location.href });
           } else {
             // 🌟 2. ดึง Token ของ LINE และเก็บลง localStorage
             const lineToken = liff.getIDToken();
