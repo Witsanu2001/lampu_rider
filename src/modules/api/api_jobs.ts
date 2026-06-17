@@ -22,6 +22,26 @@ export async function getJobs(): Promise<any[]> {
   return json.data;
 }
 
+export async function getJobsById(orderId: string): Promise<any[]> {
+  const token = await getFreshToken(); // ✨ ใช้แบบนี้ทุกฟังก์ชัน
+
+  const response = await fetch(`${apiUrl}/api/jobs/jobs_get/${orderId}`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`
+    },
+  });
+
+  const json = await response.json();
+
+  if (!response.ok || !json.success) {
+    throw new Error(json.message || "Failed to fetch order");
+  }
+
+  return json.data;
+}
+
 // ฟังก์ชันสำหรับอัปเดตสถานะออเดอร์
 export async function updateOrderStatus(orderId: string, status: string, userId: string): Promise<string> {
   const token = await getFreshToken();

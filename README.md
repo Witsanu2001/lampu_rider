@@ -72,7 +72,7 @@ export default defineConfig([
 ])
 ```
 
-
+npm run build
 firebase deploy --only hosting:rider
 
 

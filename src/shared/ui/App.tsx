@@ -8,11 +8,17 @@ import Header from "./Header";
 import BottomNav from "./BottomNav";
 import LocalLogin from "./LocalLogin";
 import ErrorBoundary from "./ErrorBoundary";
-
-// นำเข้าหน้า Page จาก Modules
 import HistoryPage from "../../modules/history/HistoryPage";
 import StovesPage from "../../modules/Stove/StovesPage";
 import JobsPage from "../../modules/Job/JobsPage";
+// 🌟 นำเข้า JobsDetail เพื่อให้กดเข้าไปดูรายละเอียดงานได้
+import JobsDetail from "../../modules/Job/components/JobsDetail";
+
+import { signInWithCustomToken } from "firebase/auth";
+import { auth } from "../const/firebase";
+import { postLineAuth } from "../../modules/api/api_login";
+// 🌟 นำเข้าคำสั่งเซฟ Token
+import { setToken } from "../infra/auth/token";
 
 // 🌟 ใส่ LIFF ID ของคุณที่ได้จาก LINE Developers Console
 const LIFF_ID = "2010385468-Yj0pURp7";
@@ -57,8 +63,25 @@ export default function App() {
         console.log("👤 Getting profile...");
         const lineToken = liff.getIDToken();
         if (lineToken) {
-          localStorage.setItem("auth_token", lineToken);
-          console.log("🎫 Token saved");
+          try {
+            const res = await postLineAuth(lineToken);
+            if (!res.ok) throw new Error(`Backend แจ้งเตือน: ${res.status}`); // 🌟 เพิ่มบรรทัดนี้
+
+            const data = await res.json();
+            if (!data.firebase_token)
+              throw new Error("Backend ไม่ให้ Firebase Token"); // 🌟 เพิ่มบรรทัดนี้
+
+            // ถ้าผ่านมาได้ แปลว่า Backend ยอมรับ!
+            const userCredential = await signInWithCustomToken(
+              auth,
+              data.firebase_token,
+            );
+            const firebaseToken = await userCredential.user.getIdToken(true);
+            setToken(firebaseToken, 24);
+          } catch (error) {
+            console.error("❌ ล้มเหลวตอนแลก Token:", error);
+            alert(`เกิดข้อผิดพลาดตอนแลก Token กับ Backend: ${error}`);
+          }
         }
 
         const profile = await liff.getProfile();
@@ -100,7 +123,6 @@ export default function App() {
   }
 
   // 2. ถ้าต้องการใช้ LocalLogin (LIFF error)
-  // 2. ถ้าต้องการใช้ LocalLogin (LIFF error)
   if (useLocalLogin) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 p-6">
@@ -118,13 +140,12 @@ export default function App() {
             ใช้ Local Login แทนชั่วคราวเพื่อทดสอบ
           </p>
 
-          {/* 🌟 รับค่า onSuccess และปลดล็อก UI ให้อนุญาตให้เข้าแอปได้ */}
           <LocalLogin
             onSuccess={(userData) => {
               setUser(userData);
               localStorage.setItem("userData", JSON.stringify(userData));
-              setIsAuth(true); // ยืนยันว่า Auth ผ่าน
-              setUseLocalLogin(false); // ซ่อนหน้าจอ LocalLogin ทิ้งไป
+              setIsAuth(true);
+              setUseLocalLogin(false);
             }}
           />
         </div>
@@ -178,7 +199,10 @@ export default function App() {
               <Route path="/history" element={<HistoryPage />} />
               <Route path="/stove" element={<StovesPage />} />
 
-              {/* 🌟 เพิ่มบรรทัดนี้: ถ้า URL ไม่ตรงกับข้างบนเลย ให้เด้งกลับมาหน้า Home (JobsPage) */}
+              {/* 🌟 เพิ่ม Route สำหรับหน้าดูรายละเอียดออเดอร์ */}
+              <Route path="/job_detail/:orderId" element={<JobsDetail />} />
+
+              {/* ถ้า URL ไม่ตรงกับข้างบนเลย ให้เด้งกลับมาหน้า Home (JobsPage) */}
               <Route path="*" element={<JobsPage />} />
             </Routes>
           </ErrorBoundary>
