@@ -79,3 +79,15 @@ firebase deploy --only hosting:rider
 git add .
 git commit -m "save work on main"
 git push origin
+
+git fetch
+
+git merge
+
+git pull
+
+git pull origin main
+
+หรือถ้า branch หลักเป็น master
+
+git pull origin master
