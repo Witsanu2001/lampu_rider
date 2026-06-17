@@ -36,11 +36,9 @@ export default function App() {
       // --- เคสที่ 1: รันบน Localhost (ใช้ Firebase Auth) ---
       const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
         if (firebaseUser) {
-          // 🌟 1. ดึง Token จาก Firebase และเก็บลง localStorage
           const token = await firebaseUser.getIdToken();
           localStorage.setItem('firebase_token', token);
 
-          // แปลงข้อมูล
           const normalizedUser = {
             uid: firebaseUser.uid,
             email: firebaseUser.email,
@@ -55,7 +53,7 @@ export default function App() {
         } else {
           setUser(null);
           localStorage.removeItem('userData');
-          localStorage.removeItem('firebase_token'); // 🌟 เคลียร์ Token เมื่อ Logout
+          localStorage.removeItem('firebase_token');
           setIsAuth(false);
         }
         setLoading(false);
@@ -69,71 +67,92 @@ export default function App() {
           await liff.init({ liffId: LIFF_ID });
           
           if (!liff.isLoggedIn()) {
-            liff.login();
-          } else {
-            // 🌟 2. ดึง Token ของ LINE และเก็บลง localStorage
-            const lineToken = liff.getIDToken();
-            if (lineToken) {
-              localStorage.setItem('auth_token', lineToken);
-            }
+            // 🛑 ถ้ายังไม่ล็อกอิน ให้เรียก liff.login()
+            liff.login({ redirectUri: window.location.href });
+            // 🛑 สำคัญมาก: ต้อง return ออกไปเลย เพื่อคงหน้าจอ Loading ไว้
+            // ไม่ให้ไปรัน setLoading(false) ด้านล่างจนกว่า LINE จะ Redirect เสร็จ
+            return; 
+          } 
 
-            const profile = await liff.getProfile();
-            const normalizedUser = {
-              uid: profile.userId,
-              displayName: profile.displayName,
-              photoURL: profile.pictureUrl || '',
-              provider: 'line'
-            };
-
-            setUser(normalizedUser);
-            localStorage.setItem('userData', JSON.stringify(normalizedUser));
-            setIsAuth(true);
+          // 🌟 กรณีล็อกอินแล้ว ดึงข้อมูลโปรไฟล์ต่อ
+          const lineToken = liff.getIDToken();
+          if (lineToken) {
+            localStorage.setItem('auth_token', lineToken);
           }
+
+          const profile = await liff.getProfile();
+          const normalizedUser = {
+            uid: profile.userId,
+            displayName: profile.displayName,
+            photoURL: profile.pictureUrl || '',
+            provider: 'line'
+          };
+
+          setUser(normalizedUser);
+          localStorage.setItem('userData', JSON.stringify(normalizedUser));
+          setIsAuth(true);
+          setLoading(false); // 🌟 ปิด Loading เมื่อได้ข้อมูลครบแล้ว
+          
         } catch (error) {
           console.error("LIFF Init Error:", error);
-        } finally {
-          setLoading(false);
+          setLoading(false); // ปิด Loading เมื่อเจอ Error เพื่อโชว์หน้าจอแจ้งเตือน
         }
       };
       initLiff();
     }
   }, [isLocalhost]);
 
+  // 1. หน้าจอตอนกำลังโหลด หรือ รอ LINE กำลัง Redirect
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50 text-gray-500 text-sm font-medium">
-        กำลังโหลดระบบ...
+      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 text-gray-500 text-sm font-medium">
+        <div className="w-10 h-10 border-4 border-gray-200 border-t-emerald-500 rounded-full animate-spin mb-4 shadow-sm"></div>
+        กำลังเชื่อมต่อระบบ...
       </div>
     );
   }
 
+  // 2. ถ้ายังไม่ล็อกอิน แยกให้เด็ดขาด!
+  if (!isAuth) {
+    return (
+      <div className="mx-auto max-w-md w-full min-h-svh bg-gray-50 flex flex-col relative shadow-2xl overflow-hidden">
+        {isLocalhost ? (
+          <LocalLogin />
+        ) : (
+          <div className="flex flex-col items-center justify-center min-h-screen p-6 text-center">
+             <p className="text-red-500 mb-4 text-sm font-bold">ไม่สามารถเข้าสู่ระบบผ่าน LINE ได้</p>
+             <button 
+                onClick={() => window.location.reload()}
+                className="bg-emerald-500 text-white px-5 py-3 rounded-xl font-bold active:scale-95 transition-all shadow-sm"
+             >
+               ลองใหม่อีกครั้ง
+             </button>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // 3. ถ้าล็อกอินสำเร็จแล้ว (isAuth = true) Render หน้าหลักของแอป
   return (
     <BrowserRouter>
       <div className="mx-auto max-w-md w-full min-h-svh bg-gray-50 flex flex-col relative shadow-2xl overflow-hidden">
         
-        {!isAuth && isLocalhost ? (
-          <LocalLogin />
-        ) : (
-          <>
-            {/* 🌟 3. ส่ง user และ setUser เข้าไปให้ Header */}
-            <Header user={user} setUser={setUser} />
-            
-            <main className="flex-1 overflow-y-auto pb-20 scroll-smooth">
-              <Routes>
-                <Route path="/" element={<JobsPage />} />
-                <Route path="/history" element={<HistoryPage />} />
-                <Route path="/stove" element={<StovesPage />} />
-              </Routes>
-            </main>
+        <Header user={user} setUser={setUser} />
+        
+        <main className="flex-1 overflow-y-auto pb-20 scroll-smooth">
+          <Routes>
+            <Route path="/" element={<JobsPage />} />
+            <Route path="/history" element={<HistoryPage />} />
+            <Route path="/stove" element={<StovesPage />} />
+          </Routes>
+        </main>
 
-            {/* 🌟 4. ส่ง user เข้าไปให้ BottomNav */}
-            <BottomNav 
-              user={user} 
-              isPaymentPage={false} 
-              hasPermission={() => true} 
-            />
-          </>
-        )}
+        <BottomNav 
+          user={user} 
+          isPaymentPage={false} 
+          hasPermission={() => true} 
+        />
         
       </div>
     </BrowserRouter>
