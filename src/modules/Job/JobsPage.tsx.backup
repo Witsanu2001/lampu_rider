@@ -15,16 +15,10 @@ export default function JobsPage() {
   const userDataString = localStorage.getItem("userData");
   const currentUser = userDataString ? JSON.parse(userDataString) : null;
 
-  console.log("🚀 JobsPage rendering, currentUser:", currentUser);
-
   // 🌟 2. ตัวดักจับ (Listener) เมื่อแอดมินโยนงานมาให้ใหม่ (แบบ Realtime)
   useEffect(() => {
-    if (!currentUser?.uid) {
-      console.log("⚠️ No currentUser.uid, skipping Firebase listener");
-      return;
-    }
+    if (!currentUser?.uid) return;
 
-    console.log("📡 Setting up Firebase listener for:", currentUser.uid);
     let debounceTimer: ReturnType<typeof setTimeout>;
     // ชี้เป้าไปที่โหนดคิวงานของไรเดอร์คนนี้โดยเฉพาะ
     const jobsRef = ref(db, `live_jobs/${currentUser.uid}`);
@@ -34,7 +28,6 @@ export default function JobsPage() {
       clearTimeout(debounceTimer);
       // หน่วงเวลาเล็กน้อย (500ms) ป้องกันการยิง API รัวๆ ในกรณีแอดมินจัดคิวหลายออเดอร์พร้อมกัน
       debounceTimer = setTimeout(() => {
-        console.log("🔄 Refreshing jobs due to Firebase change");
         setRefreshKey((prev) => prev + 1); // 🎯 สั่งให้ useEffect ตัวล่างดึง API อัตโนมัติ
       }, 500);
     });
@@ -50,11 +43,9 @@ export default function JobsPage() {
     let isMounted = true;
 
     const fetchActiveJobs = async () => {
-      console.log("📥 Fetching jobs...");
       // 🌟 นำ setLoading(true) ออกจากตรงนี้ เพื่อไม่ให้หน้าจอกระพริบขาวเวลาข้อมูลเข้าแบบเรียลไทม์
       try {
         const data = await getJobs();
-        console.log("✅ Jobs fetched:", data);
         if (isMounted) {
           const activeJobs = data.filter(
             (job: any) =>
@@ -67,14 +58,12 @@ export default function JobsPage() {
           );
           
           setJobs(activeJobs);
-          console.log("🎯 Active jobs set:", activeJobs.length);
         }
       } catch (error) {
-        console.error("❌ Error fetching jobs:", error);
+        console.error("Error fetching jobs:", error);
       } finally {
         if (isMounted) {
           setLoading(false); // ปิดฉากโหลดหลังจากโหลดเสร็จครั้งแรก
-          console.log("✅ Loading set to false");
         }
       }
     };
@@ -119,10 +108,7 @@ export default function JobsPage() {
     });
   };
 
-  console.log("🎨 JobsPage render state - loading:", loading, "jobs:", jobs.length);
-
   if (loading) {
-    console.log("⏳ Showing loading state");
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
         <div className="w-10 h-10 border-4 border-gray-200 border-t-orange-500 rounded-full animate-spin mb-4 shadow-sm"></div>
@@ -131,7 +117,6 @@ export default function JobsPage() {
     );
   }
 
-  console.log("✅ Showing jobs content");
   return (
     <div className="p-4 flex flex-col gap-4 animate-fade-in">
       <h2 className="font-bold text-gray-800 flex items-center gap-2">
@@ -207,7 +192,7 @@ export default function JobsPage() {
                     เพิ่ม: เตา {order?.equipment?.stoveCount || 0}, กระทะ{" "}
                     {order?.equipment?.panCount || 0}
                     {order?.addOnItems && order.addOnItems.length > 0
-                      ? `, ${order.addOnItems.map((a: any) => a.name).join(", ")}` 
+                      ? `, ${order.addOnItems.map((a: any) => a.name).join(", ")}`
                       : ""}
                   </span>
                 </p>
@@ -347,4 +332,4 @@ export default function JobsPage() {
       </div>
     </div>
   );
-}
+}  console.log('?? JobsPage mounted, currentUser:', currentUser);

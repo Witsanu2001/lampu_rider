@@ -1,159 +1,194 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // src/shared/ui/App.tsx
-import { useEffect, useState } from 'react';
-import liff from '@line/liff';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { onAuthStateChanged } from 'firebase/auth';
-import { auth } from '../const/firebase';
+import { useEffect, useState } from "react";
+import liff from "@line/liff";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 
-import Header from './Header';
-import BottomNav from './BottomNav';
-import LocalLogin from './LocalLogin';
+import Header from "./Header";
+import BottomNav from "./BottomNav";
+import LocalLogin from "./LocalLogin";
+import ErrorBoundary from "./ErrorBoundary";
 
 // นำเข้าหน้า Page จาก Modules
-import HistoryPage from '../../modules/history/HistoryPage';
-import StovesPage from '../../modules/Stove/StovesPage';
-import JobsPage from '../../modules/Job/JobsPage';
+import HistoryPage from "../../modules/history/HistoryPage";
+import StovesPage from "../../modules/Stove/StovesPage";
+import JobsPage from "../../modules/Job/JobsPage";
 
-// 🌟 ใส่ LIFF ID ของคุณให้ถูกต้อง
-const LIFF_ID = "2010209102-zHsx4M0r";
+// 🌟 ใส่ LIFF ID ของคุณที่ได้จาก LINE Developers Console
+const LIFF_ID = "2010385468-Yj0pURp7";
+
+// 🌟 URL ของแอปคุณ (ต้องตรงกับ Endpoint URL ใน LINE Console)
+const APP_URL = "https://lampu-rider.web.app/";
 
 export default function App() {
   const [user, setUser] = useState<any>(() => {
-    const saved = localStorage.getItem('userData');
+    const saved = localStorage.getItem("userData");
     return saved ? JSON.parse(saved) : null;
   });
-  
+
   const [isAuth, setIsAuth] = useState(false);
   const [loading, setLoading] = useState(true);
-
-  const isLocalhost = 
-    window.location.hostname === 'localhost' || 
-    window.location.hostname === '127.0.0.1';
+  const [useLocalLogin, setUseLocalLogin] = useState(false);
+  const [liffError, setLiffError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (isLocalhost) {
-      // --- เคสที่ 1: รันบน Localhost (ใช้ Firebase Auth) ---
-      const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-        if (firebaseUser) {
-          const token = await firebaseUser.getIdToken();
-          localStorage.setItem('firebase_token', token);
+    console.log("🚀 App initializing...");
+    console.log("📍 Current URL:", window.location.href);
+    console.log("🔍 LIFF ID:", LIFF_ID);
 
-          const normalizedUser = {
-            uid: firebaseUser.uid,
-            email: firebaseUser.email,
-            displayName: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'Rider',
-            photoURL: firebaseUser.photoURL || '',
-            provider: 'firebase'
-          };
+    // --- ใช้ LIFF สำหรับ Production ---
+    const initLiff = async () => {
+      try {
+        console.log("📱 Starting LIFF init...");
+        await liff.init({ liffId: LIFF_ID });
+        console.log("✅ LIFF init success");
 
-          setUser(normalizedUser);
-          localStorage.setItem('userData', JSON.stringify(normalizedUser));
-          setIsAuth(true);
-        } else {
-          setUser(null);
-          localStorage.removeItem('userData');
-          localStorage.removeItem('firebase_token');
-          setIsAuth(false);
+        const loggedIn = liff.isLoggedIn();
+        console.log("🔐 Is logged in:", loggedIn);
+
+        if (!loggedIn) {
+          console.log("🔑 Not logged in, redirecting to LINE login...");
+          // 🛑 ถ้ายังไม่ล็อกอิน ให้ Redirect ไปหน้า Login ของ LINE
+          liff.login({ redirectUri: APP_URL });
+          return; // หยุดการทำงานตรงนี้ เพื่อรอระบบเปลี่ยนหน้า
         }
+
+        // 🌟 กรณีล็อกอินแล้ว ดึงข้อมูลโปรไฟล์ต่อ
+        console.log("👤 Getting profile...");
+        const lineToken = liff.getIDToken();
+        if (lineToken) {
+          localStorage.setItem("auth_token", lineToken);
+          console.log("🎫 Token saved");
+        }
+
+        const profile = await liff.getProfile();
+        console.log("✅ Profile received:", profile);
+
+        const normalizedUser = {
+          uid: profile.userId,
+          displayName: profile.displayName,
+          photoURL: profile.pictureUrl || "",
+          provider: "line",
+        };
+
+        setUser(normalizedUser);
+        localStorage.setItem("userData", JSON.stringify(normalizedUser));
+        setIsAuth(true);
+        setLoading(false); // ปิด Loading เมื่อได้ข้อมูลครบแล้ว
+        console.log("🎉 Login success!");
+      } catch (error) {
+        console.error("❌ LIFF Init Error:", error);
+        setLiffError(error instanceof Error ? error.message : String(error));
+        // 🛑 เมื่อเกิด Error ให้เปลี่ยนไปใช้ LocalLogin แทน
+        console.log("🔄 Falling back to LocalLogin due to LIFF error");
+        setUseLocalLogin(true);
         setLoading(false);
-      });
-      return () => unsubscribe();
+      }
+    };
 
-    } else {
-      // --- เคสที่ 2: รันบนระบบจริง/LINE App (ใช้ LIFF) ---
-      const initLiff = async () => {
-        try {
-          await liff.init({ liffId: LIFF_ID });
-          
-          if (!liff.isLoggedIn()) {
-            // 🛑 ถ้ายังไม่ล็อกอิน ให้เรียก liff.login()
-            liff.login({ redirectUri: window.location.href });
-            // 🛑 สำคัญมาก: ต้อง return ออกไปเลย เพื่อคงหน้าจอ Loading ไว้
-            // ไม่ให้ไปรัน setLoading(false) ด้านล่างจนกว่า LINE จะ Redirect เสร็จ
-            return; 
-          } 
-
-          // 🌟 กรณีล็อกอินแล้ว ดึงข้อมูลโปรไฟล์ต่อ
-          const lineToken = liff.getIDToken();
-          if (lineToken) {
-            localStorage.setItem('auth_token', lineToken);
-          }
-
-          const profile = await liff.getProfile();
-          const normalizedUser = {
-            uid: profile.userId,
-            displayName: profile.displayName,
-            photoURL: profile.pictureUrl || '',
-            provider: 'line'
-          };
-
-          setUser(normalizedUser);
-          localStorage.setItem('userData', JSON.stringify(normalizedUser));
-          setIsAuth(true);
-          setLoading(false); // 🌟 ปิด Loading เมื่อได้ข้อมูลครบแล้ว
-          
-        } catch (error) {
-          console.error("LIFF Init Error:", error);
-          setLoading(false); // ปิด Loading เมื่อเจอ Error เพื่อโชว์หน้าจอแจ้งเตือน
-        }
-      };
-      initLiff();
-    }
-  }, [isLocalhost]);
+    initLiff();
+  }, []);
 
   // 1. หน้าจอตอนกำลังโหลด หรือ รอ LINE กำลัง Redirect
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 text-gray-500 text-sm font-medium">
         <div className="w-10 h-10 border-4 border-gray-200 border-t-emerald-500 rounded-full animate-spin mb-4 shadow-sm"></div>
-        กำลังเชื่อมต่อระบบ...
+        กำลังเชื่อมต่อระบบ LINE...
       </div>
     );
   }
 
-  // 2. ถ้ายังไม่ล็อกอิน แยกให้เด็ดขาด!
+  // 2. ถ้าต้องการใช้ LocalLogin (LIFF error)
+  // 2. ถ้าต้องการใช้ LocalLogin (LIFF error)
+  if (useLocalLogin) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 p-6">
+        <div className="w-full max-w-md bg-white rounded-2xl p-6 shadow-sm border border-orange-100 text-center">
+          <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <span className="text-2xl">⚠️</span>
+          </div>
+          <h2 className="text-xl font-bold text-gray-800 mb-2">
+            LIFF Login ล้มเหลว
+          </h2>
+          <p className="text-gray-500 text-xs mb-4">
+            {liffError || "ไม่สามารถเชื่อมต่อระบบ LINE ได้"}
+          </p>
+          <p className="text-gray-400 text-xs mb-6">
+            ใช้ Local Login แทนชั่วคราวเพื่อทดสอบ
+          </p>
+
+          {/* 🌟 รับค่า onSuccess และปลดล็อก UI ให้อนุญาตให้เข้าแอปได้ */}
+          <LocalLogin
+            onSuccess={(userData) => {
+              setUser(userData);
+              localStorage.setItem("userData", JSON.stringify(userData));
+              setIsAuth(true); // ยืนยันว่า Auth ผ่าน
+              setUseLocalLogin(false); // ซ่อนหน้าจอ LocalLogin ทิ้งไป
+            }}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  // 3. ถ้ามี Error จาก LIFF หรือยังไม่ได้ Auth
   if (!isAuth) {
     return (
-      <div className="mx-auto max-w-md w-full min-h-svh bg-gray-50 flex flex-col relative shadow-2xl overflow-hidden">
-        {isLocalhost ? (
-          <LocalLogin />
-        ) : (
-          <div className="flex flex-col items-center justify-center min-h-screen p-6 text-center">
-             <p className="text-red-500 mb-4 text-sm font-bold">ไม่สามารถเข้าสู่ระบบผ่าน LINE ได้</p>
-             <button 
-                onClick={() => window.location.reload()}
-                className="bg-emerald-500 text-white px-5 py-3 rounded-xl font-bold active:scale-95 transition-all shadow-sm"
-             >
-               ลองใหม่อีกครั้ง
-             </button>
-          </div>
-        )}
+      <div className="mx-auto max-w-md w-full min-h-svh bg-gray-50 flex flex-col items-center justify-center p-6 text-center shadow-2xl">
+        <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <span className="text-2xl">⚠️</span>
+        </div>
+        <p className="text-red-500 mb-2 text-sm font-bold">
+          ไม่สามารถเชื่อมต่อระบบ LINE ได้
+        </p>
+        <p className="text-gray-400 text-xs mb-6">
+          กรุณาเปิดลิงก์นี้ผ่านแอปพลิเคชัน LINE
+          <br />
+          หรือใช้ลิงก์ที่เป็น HTTPS เท่านั้น
+        </p>
+        <button
+          onClick={() => window.location.reload()}
+          className="bg-emerald-500 text-white px-5 py-3 rounded-xl font-bold active:scale-95 transition-all shadow-sm w-full max-w-200px"
+        >
+          ลองใหม่อีกครั้ง
+        </button>
       </div>
     );
   }
 
-  // 3. ถ้าล็อกอินสำเร็จแล้ว (isAuth = true) Render หน้าหลักของแอป
+  // 4. ถ้าล็อกอินสำเร็จแล้ว Render หน้าหลักของแอป
+  console.log(
+    "🎯 Rendering main app, user:",
+    user,
+    "isAuth:",
+    isAuth,
+    "loading:",
+    loading,
+  );
   return (
     <BrowserRouter>
       <div className="mx-auto max-w-md w-full min-h-svh bg-gray-50 flex flex-col relative shadow-2xl overflow-hidden">
-        
         <Header user={user} setUser={setUser} />
-        
+
         <main className="flex-1 overflow-y-auto pb-20 scroll-smooth">
-          <Routes>
-            <Route path="/" element={<JobsPage />} />
-            <Route path="/history" element={<HistoryPage />} />
-            <Route path="/stove" element={<StovesPage />} />
-          </Routes>
+          <ErrorBoundary>
+            <Routes>
+              <Route path="/" element={<JobsPage />} />
+              <Route path="/history" element={<HistoryPage />} />
+              <Route path="/stove" element={<StovesPage />} />
+
+              {/* 🌟 เพิ่มบรรทัดนี้: ถ้า URL ไม่ตรงกับข้างบนเลย ให้เด้งกลับมาหน้า Home (JobsPage) */}
+              <Route path="*" element={<JobsPage />} />
+            </Routes>
+          </ErrorBoundary>
         </main>
 
-        <BottomNav 
-          user={user} 
-          isPaymentPage={false} 
-          hasPermission={() => true} 
+        <BottomNav
+          user={user}
+          isPaymentPage={false}
+          hasPermission={() => true}
         />
-        
       </div>
     </BrowserRouter>
   );

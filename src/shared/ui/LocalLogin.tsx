@@ -4,7 +4,12 @@ import React, { useState } from 'react';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../const/firebase';
 
-export default function LocalLogin() {
+// 🌟 1. เพิ่ม Interface ให้รับฟังก์ชัน onSuccess
+interface LocalLoginProps {
+  onSuccess: (userData: any) => void;
+}
+
+export default function LocalLogin({ onSuccess }: LocalLoginProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -13,8 +18,7 @@ export default function LocalLogin() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    setLoading(false);
-
+    
     if (!email || !password) {
       setError('กรุณากรอกอีเมลและรหัสผ่านให้ครบถ้วน');
       return;
@@ -22,17 +26,27 @@ export default function LocalLogin() {
 
     try {
       setLoading(true);
-      await signInWithEmailAndPassword(auth, email, password);
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
       console.log("Firebase Local Login Success!");
+      
+      // 🌟 2. เมื่อล็อกอินสำเร็จ ให้ส่งข้อมูลกลับไปที่ App.tsx เพื่อปลดล็อกหน้า UI
+      onSuccess({
+        uid: userCredential.user.uid,
+        displayName: userCredential.user.email?.split('@')[0] || "Rider",
+        photoURL: "",
+        provider: 'firebase'
+      });
+      
     } catch (err: any) {
       console.error(err);
-      setError('อีเมลหรือรหัสผ่านไม่ถูกต้อง (หรือยังไม่ได้เปิดใช้งาน Email/Password ใน Firebase)');
+      setError('อีเมลหรือรหัสผ่านไม่ถูกต้อง');
     } finally {
       setLoading(false);
     }
   };
 
   return (
+    // ... (ส่วน UI ของ Form ด้านล่างใช้โค้ดเดิมของคุณได้เลยครับ)
     <div className="flex flex-col items-center justify-center min-h-[80vh] p-6">
       <div className="w-full bg-white rounded-2xl p-6 shadow-sm border border-orange-100 text-center">
         <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -58,7 +72,6 @@ export default function LocalLogin() {
               className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-orange-500 transition-colors"
             />
           </div>
-
           <div>
             <label className="text-xs font-bold text-gray-600 block mb-1">Password</label>
             <input
@@ -69,11 +82,10 @@ export default function LocalLogin() {
               className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-orange-500 transition-colors"
             />
           </div>
-
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-gradient-to-r from-orange-500 to-red-600 text-white font-bold py-3.5 rounded-xl shadow-md hover:opacity-90 transition-opacity mt-2 flex items-center justify-center"
+            className="w-full bg-linear-to-r from-orange-500 to-red-600 text-white font-bold py-3.5 rounded-xl shadow-md hover:opacity-90 transition-opacity mt-2 flex items-center justify-center"
           >
             {loading ? 'กำลังเข้าสู่ระบบ...' : 'เข้าสู่ระบบ (Local)'}
           </button>
