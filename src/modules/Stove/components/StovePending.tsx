@@ -122,7 +122,7 @@ export default function StovePending() {
 
   if (jobs.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 text-gray-400 dark:text-gray-500">
+      <div className="flex flex-col items-center justify-center py-20 text-gray-400">
         <span className="text-6xl mb-4 opacity-50">🫙</span>
         <p className="text-lg font-medium">ไม่มีงานรอเก็บเตาในขณะนี้</p>
       </div>
@@ -141,26 +141,26 @@ export default function StovePending() {
             // 🌟 ปรับสีการ์ดเป็นสีแดง ถ้าเป็น stoveFalse
             className={`rounded-2xl border shadow-sm overflow-hidden transition-all ${
               isStoveFalse 
-                ? "bg-red-50/30 dark:bg-red-900/10 border-red-200 dark:border-red-800" 
-                : "bg-white dark:bg-gray-800/90 border-gray-100 dark:border-gray-700"
+                ? "bg-red-50/30 border-red-200" 
+                : "bg-white border-gray-100"
             }`}
           >
             <div className="p-4 sm:p-5">
 
               {/* ป้ายเตือนกรณีเคยเก็บไม่ครบ */}
               {isStoveFalse && (
-                <div className="mb-3 px-3 py-2 bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 rounded-lg text-xs font-bold flex items-center gap-2">
+                <div className="mb-3 px-3 py-2 bg-red-100 text-red-700 rounded-lg text-xs font-bold flex items-center gap-2">
                   <span className="text-base">⚠️</span> ออเดอร์นี้เคยแจ้งว่าเก็บไม่ครบ กรุณาตามเก็บส่วนที่เหลือ
                 </div>
               )}
 
               <div className={`flex items-start gap-2 text-sm mb-4 p-3 rounded-xl border ${
                 isStoveFalse 
-                  ? "bg-red-50 dark:bg-red-900/30 border-red-100 dark:border-red-800/50 text-red-800 dark:text-red-200" 
-                  : "bg-gray-50 dark:bg-gray-900/50 border-gray-100 dark:border-gray-700/50 text-gray-600 dark:text-gray-300"
+                  ? "bg-red-50 border-red-100 text-red-800" 
+                  : "bg-gray-50 border-gray-100 text-gray-600"
               }`}>
                 <span className="line-clamp-2 leading-relaxed">
-                  <span className="font-bold text-gray-800 dark:text-gray-200">คุณ {job.shipping?.recipient || "ไม่ระบุชื่อ"}</span><br/>
+                  <span className="font-bold text-gray-800">คุณ {job.shipping?.recipient || "ไม่ระบุชื่อ"}</span><br/>
                   <span className="text-xs opacity-80">ที่อยู่: {job.shipping?.address || "ไม่ระบุที่อยู่"}</span>
                 </span>
               </div>
@@ -200,39 +200,39 @@ export default function StovePending() {
       {/* 🌟 Modal Popup (ใช้สำหรับงาน Pending ปกติเท่านั้น) */}
       {isModalOpen && selectedJob && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 transition-opacity">
-          <div className="bg-white dark:bg-gray-800 p-6 rounded-[24px] w-full max-w-sm shadow-2xl border border-gray-100 dark:border-gray-700 animate-in fade-in zoom-in-95 duration-200">
-            <h2 className="text-xl font-black mb-1 text-gray-900 dark:text-white">สถานะการเก็บอุปกรณ์</h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">
+          <div className="bg-white p-6 rounded-3xl w-full max-w-sm shadow-2xl border border-gray-100 animate-in fade-in zoom-in-95 duration-200">
+            <h2 className="text-xl font-black mb-1 text-gray-900">สถานะการเก็บอุปกรณ์</h2>
+            <p className="text-sm text-gray-500 mb-5">
               ออเดอร์: {selectedJob.shipping?.recipient}
             </p>
 
             <div className="space-y-3 mb-5">
-              <label className={`flex items-center p-4 rounded-xl border cursor-pointer transition-all ${collectionType === "complete" ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-500/10 shadow-sm" : "border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700"}`}>
+              <label className={`flex items-center p-4 rounded-xl border cursor-pointer transition-all ${collectionType === "complete" ? "border-emerald-500 bg-emerald-50 shadow-sm" : "border-gray-200 hover:bg-gray-50"}`}>
                 <input type="radio" value="complete" checked={collectionType === "complete"} onChange={() => setCollectionType("complete")} className="w-5 h-5 text-emerald-600" />
-                <span className="ml-3 font-bold text-gray-800 dark:text-gray-200">✅ เก็บครบทุกชิ้น</span>
+                <span className="ml-3 font-bold text-gray-800">✅ เก็บครบทุกชิ้น</span>
               </label>
 
-              <label className={`flex items-center p-4 rounded-xl border cursor-pointer transition-all ${collectionType === "incomplete" ? "border-red-500 bg-red-50 dark:bg-red-500/10 shadow-sm" : "border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700"}`}>
+              <label className={`flex items-center p-4 rounded-xl border cursor-pointer transition-all ${collectionType === "incomplete" ? "border-red-500 bg-red-50 shadow-sm" : "border-gray-200 hover:bg-gray-50"}`}>
                 <input type="radio" value="incomplete" checked={collectionType === "incomplete"} onChange={() => setCollectionType("incomplete")} className="w-5 h-5 text-red-600" />
-                <span className="ml-3 font-bold text-gray-800 dark:text-gray-200">⚠️ เก็บไม่ครบ / สูญหาย</span>
+                <span className="ml-3 font-bold text-gray-800">⚠️ เก็บไม่ครบ / สูญหาย</span>
               </label>
             </div>
 
             {collectionType === "incomplete" && (
-              <div className="space-y-4 mb-6 p-4 bg-gray-50 dark:bg-gray-900/50 rounded-xl border border-gray-100 dark:border-gray-700">
+              <div className="space-y-4 mb-6 p-4 bg-gray-50 rounded-xl border border-gray-100">
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5">เตาที่เก็บได้ (จาก {selectedJob.equipment?.stoveCount || 0})</label>
-                    <input type="number" min="0" max={selectedJob.equipment?.stoveCount || 0} value={collectedStoves} onChange={(e) => setCollectedStoves(Number(e.target.value))} className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-emerald-500" />
+                    <label className="block text-xs font-semibold text-gray-600 mb-1.5">เตาที่เก็บได้ (จาก {selectedJob.equipment?.stoveCount || 0})</label>
+                    <input type="number" min="0" max={selectedJob.equipment?.stoveCount || 0} value={collectedStoves} onChange={(e) => setCollectedStoves(Number(e.target.value))} className="w-full px-3 py-2 rounded-lg border border-gray-300 bg-white text-gray-900 outline-none focus:ring-2 focus:ring-emerald-500" />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5">กระทะ (จาก {selectedJob.equipment?.panCount || 0})</label>
-                    <input type="number" min="0" max={selectedJob.equipment?.panCount || 0} value={collectedPans} onChange={(e) => setCollectedPans(Number(e.target.value))} className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-emerald-500" />
+                    <label className="block text-xs font-semibold text-gray-600 mb-1.5">กระทะ (จาก {selectedJob.equipment?.panCount || 0})</label>
+                    <input type="number" min="0" max={selectedJob.equipment?.panCount || 0} value={collectedPans} onChange={(e) => setCollectedPans(Number(e.target.value))} className="w-full px-3 py-2 rounded-lg border border-gray-300 bg-white text-gray-900 outline-none focus:ring-2 focus:ring-emerald-500" />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5">ระบุเหตุผลที่เก็บไม่ครบ</label>
-                  <textarea rows={2} placeholder="เช่น ลูกค้าทำหาย, กระทะแตก..." value={reason} onChange={(e) => setReason(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-emerald-500 resize-none text-sm"></textarea>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1.5">ระบุเหตุผลที่เก็บไม่ครบ</label>
+                  <textarea rows={2} placeholder="เช่น ลูกค้าทำหาย, กระทะแตก..." value={reason} onChange={(e) => setReason(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-gray-300 bg-white text-gray-900 outline-none focus:ring-2 focus:ring-emerald-500 resize-none text-sm"></textarea>
                 </div>
               </div>
             )}
@@ -241,7 +241,7 @@ export default function StovePending() {
               <button 
                 onClick={() => setIsModalOpen(false)} 
                 disabled={isSubmitting}
-                className="flex-1 py-3 text-gray-600 dark:text-gray-400 font-bold bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 rounded-xl transition-colors disabled:opacity-50"
+                className="flex-1 py-3 text-gray-600 font-bold bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors disabled:opacity-50"
               >
                 ยกเลิก
               </button>

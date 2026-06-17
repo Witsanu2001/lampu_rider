@@ -109,7 +109,7 @@ export default function App() {
 
   return (
     <BrowserRouter>
-      <div className="mx-auto max-w-md w-full min-h-[100svh] bg-gray-50 flex flex-col relative shadow-2xl overflow-hidden">
+      <div className="mx-auto max-w-md w-full min-h-svh bg-gray-50 flex flex-col relative shadow-2xl overflow-hidden">
         
         {!isAuth && isLocalhost ? (
           <LocalLogin />
