@@ -125,3 +125,25 @@ export async function getStoveSuccess(selectDate: string, searchName: string, pa
 
   return json.data || [];
 }
+
+
+export async function getJobSummary(rider_id: string, date: string): Promise<any> {
+  const token = await getFreshToken(); 
+
+  // 🌟 นำ rider_id และ date ไปต่อท้าย URL
+  const response = await fetch(`${apiUrl}/api/jobs/jobs_summary?user_id=${rider_id}&date=${date}`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`
+    },
+  });
+
+  const json = await response.json();
+
+  if (!response.ok || !json.success) {
+    throw new Error(json.message || "Failed to fetch summary");
+  }
+
+  return json.data;
+}

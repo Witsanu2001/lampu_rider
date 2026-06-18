@@ -1,8 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useEffect, useState } from "react";
-import { getJobs, updateOrderStatus } from "../api/api_jobs";
-
-// 🌟 1. นำเข้าคำสั่งใช้งาน Firebase Realtime Database
+import { useEffect, useState, useRef } from "react"; // 🌟 1. นำเข้า useRef
+import { getJobs, getJobSummary, updateOrderStatus } from "../api/api_jobs";
 import { ref, onValue } from "firebase/database";
 import { db } from "../../shared/const/firebase";
 import { useNavigate } from "react-router-dom";
@@ -12,6 +10,9 @@ export default function JobsPage() {
   const [jobs, setJobs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
+
+  // 🌟 2. สร้าง Reference สำหรับชี้ไปที่จุดบนสุดของหน้า
+  const topRef = useRef<HTMLDivElement>(null);
 
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean;
@@ -26,6 +27,8 @@ export default function JobsPage() {
   const userDataString = localStorage.getItem("userData");
   const currentUser = userDataString ? JSON.parse(userDataString) : null;
 
+  const [summary, setSummary] = useState({ total_rounds: 0, total_delivery_fee: 0 });
+
   useEffect(() => {
     if (!currentUser?.uid) {
       return;
@@ -37,8 +40,7 @@ export default function JobsPage() {
     const unsubscribe = onValue(jobsRef, () => {
       clearTimeout(debounceTimer);
       debounceTimer = setTimeout(() => {
-         // 👈 ใส่คำสั่งนี้กลับเข้ามา เพื่อบอกให้ระบบดึงข้อมูลใหม่
-         setRefreshKey((prev) => prev + 1); 
+        setRefreshKey((prev) => prev + 1);
       }, 500);
     });
 
@@ -59,11 +61,14 @@ export default function JobsPage() {
             (job: any) => job.status === "ready" || job.status === "shipping",
           );
 
-          activeJobs.sort(
-            (a: any, b: any) =>
+          activeJobs.sort((a: any, b: any) => {
+            if (a.status === "shipping" && b.status !== "shipping") return -1;
+            if (a.status !== "shipping" && b.status === "shipping") return 1;
+            return (
               new Date(a.created_at).getTime() -
-              new Date(b.created_at).getTime(),
-          );
+              new Date(b.created_at).getTime()
+            );
+          });
 
           setJobs(activeJobs);
         }
@@ -91,21 +96,75 @@ export default function JobsPage() {
 
     try {
       await updateOrderStatus(orderId, nextStatus, currentUser.uid);
+
       if (nextStatus === "delivered") {
-        setJobs((prevJobs) => prevJobs.filter((job) => String(job.id) !== String(orderId)));
+        setJobs((prevJobs) =>
+          prevJobs.filter((job) => String(job.id) !== String(orderId)),
+        );
       } else if (nextStatus === "shipping") {
+        // 🌟 1. เปลี่ยนเป็นการ์ดสีเขียวก่อน (ยังไม่ย้ายตำแหน่ง)
         setJobs((prevJobs) =>
           prevJobs.map((job) =>
-            String(job.id) === String(orderId) ? { ...job, status: "shipping" } : job,
+            String(job.id) === String(orderId)
+              ? { ...job, status: "shipping" }
+              : job,
           ),
         );
+
+        // 🌟 2. หน่วงเวลา 0.5 วินาทีให้เห็นการ์ดสีเขียวชัดๆ แล้วค่อยดันขึ้นบนสุด
+        setTimeout(() => {
+          setJobs((prevJobs) => {
+            const updatedJobs = [...prevJobs];
+            return updatedJobs.sort((a: any, b: any) => {
+              if (a.status === "shipping" && b.status !== "shipping") return -1;
+              if (a.status !== "shipping" && b.status === "shipping") return 1;
+              return (
+                new Date(a.created_at).getTime() -
+                new Date(b.created_at).getTime()
+              );
+            });
+          });
+
+          // 🌟 3. สั่งสไลด์หน้าจอขึ้นไปบนสุด (ใช้ window.scrollTo จะทำงานได้ชัวร์กว่าบนมือถือ)
+          window.scrollTo({
+            top: 0,
+            behavior: "smooth",
+          });
+        }, 500); // 500 คือ 0.5 วินาที (ปรับเพิ่มลดความหน่วงได้ตามชอบ)
       }
     } catch (error: any) {
       alert(`เกิดข้อผิดพลาด: ${error.message}`);
     }
   };
 
-  // ฟังก์ชันจัดรูปแบบเวลา
+  useEffect(() => {
+    if (!currentUser?.uid) return;
+
+    const fetchSummary = async () => {
+      try {
+        // หาค่าวันที่ปัจจุบันให้อยู่ในฟอร์แมต YYYY-MM-DD
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, "0");
+        const day = String(today.getDate()).padStart(2, "0");
+        const todayStr = `${year}-${month}-${day}`;
+
+        // ส่ง userID และ วันที่ปัจจุบัน ไปดึงข้อมูล
+        const data = await getJobSummary(currentUser.uid, todayStr);
+        if (data) {
+          setSummary({
+            total_rounds: data.total_rounds || 0,
+            total_delivery_fee: data.total_delivery_fee || 0,
+          });
+        }
+      } catch (error) {
+        console.error("❌ Error fetching job summary:", error);
+      }
+    };
+
+    fetchSummary();
+  }, [currentUser?.uid, refreshKey]);
+
   const formatTime = (dateString: string) => {
     if (!dateString) return "";
     const date = new Date(dateString);
@@ -125,7 +184,10 @@ export default function JobsPage() {
   }
 
   return (
-    <div className="p-4 flex flex-col gap-4 animate-fade-in">
+    <div className="p-4 flex flex-col gap-4 animate-fade-in relative">
+      {/* 🌟 4. ตัวจุดหมุด (Anchor) ล่องหน เอาไว้ให้จอเลื่อนขึ้นมาหา */}
+      <div ref={topRef} className="absolute top-0 left-0 w-full h-px" />
+
       <div className="font-bold text-gray-800 text-lg flex items-center gap-2">
         <span>ออเดอร์ในคิวของคุณ</span>
         <span className="bg-orange-100 text-orange-600 px-2 py-0.5 rounded-full text-xs">
@@ -153,7 +215,7 @@ export default function JobsPage() {
                   : "bg-linear-to-br from-orange-500 to-red-600"
               }`}
             >
-              {/* กราฟิกตกแต่ง */}
+              {/* ... (เนื้อหาด้านในการ์ดออเดอร์คงเดิม ไม่ต้องแก้ไข) ... */}
               <div className="absolute -top-4 -right-4 opacity-10 pointer-events-none">
                 <svg
                   className="w-32 h-32"
@@ -166,28 +228,14 @@ export default function JobsPage() {
               </div>
 
               <div className="relative z-10">
-                {/* <div className="flex justify-between items-start mb-3">
-                  <span className="bg-white/20 backdrop-blur-md border border-white/30 text-white text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-1">
-                    {isShipping ? "กำลังไปส่ง 🚀" : "ออเดอร์เตรียมส่ง 🛵"}
-                    (คิวที่ {index + 1})
-                  </span>
-                  <span className="text-sm text-white/80">
-                    สั่งเมื่อ {formatTime(order?.created_at)} น.
-                  </span>
-                </div> */}
-
                 <div className="flex justify-between items-start mb-3">
-                  {/* ป้ายแสดงเวลา (ของเดิม) */}
                   <span className="bg-white/20 backdrop-blur-md border border-white/30 text-white text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-1">
                     สั่งเมื่อ {formatTime(order?.created_at)} น.
                   </span>
-
-                  {/* ปุ่มลูกศร */}
                   <button
                     onClick={() => navigate(`/job_detail/${order.id}`)}
                     className="bg-white/20 hover:bg-white/30 backdrop-blur-md border border-white/30 text-white p-1.5 rounded-full transition-all active:scale-95 flex items-center justify-center"
                   >
-                    {/* ไอคอนลูกศรชี้ขวา (Right Arrow) */}
                     <svg
                       className="w-4 h-4"
                       fill="none"
@@ -204,7 +252,6 @@ export default function JobsPage() {
                   </button>
                 </div>
 
-                {/* แทนที่จะดึง [0] ให้วนลูปแทน */}
                 <div className="flex flex-col gap-1">
                   {order?.mainItems && order.mainItems.length > 0 ? (
                     order.mainItems.map((item: any, idx: number) => (
@@ -229,7 +276,7 @@ export default function JobsPage() {
                       strokeLinejoin="round"
                       strokeWidth="2"
                       d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                    ></path>
+                    />
                   </svg>
                   <span>
                     เตา {order?.equipment?.stoveCount || 0}, กระทะ{" "}
@@ -239,24 +286,18 @@ export default function JobsPage() {
 
                 <div className="bg-black/20 rounded-xl p-4 mb-5 border border-white/10">
                   <div className="flex items-start justify-between gap-4">
-                    {/* ฝั่งข้อมูล */}
                     <div className="flex-1">
-
                       <p className="font-bold text-white text-base">
                         {order?.shipping?.recipient}
                       </p>
-
                       <p className="text-xs text-white/60 mb-2">
                         เบอร์โทร: {order?.shipping?.phone}
                       </p>
-
                       <span className="text-sm">📍</span>
                       <span className="text-xs font-medium text-white/70">
                         จัดส่งที่ {order?.shipping?.address}
                       </span>
                     </div>
-
-                    {/* ปุ่มโทร (ฝั่งขวา) */}
                     <a
                       href={`tel:${order?.shipping?.phone}`}
                       className="shrink-0 bg-green-500 hover:bg-green-600 text-white p-3 rounded-full shadow-lg transition-all active:scale-95 flex items-center justify-center mt-1"
@@ -279,7 +320,6 @@ export default function JobsPage() {
                   </div>
                 </div>
 
-                {/* 🌟 ปุ่มกดต่างๆ ในการ์ดออเดอร์ */}
                 <div className="flex flex-col gap-2">
                   <div className="flex flex-row gap-2">
                     <button
@@ -292,7 +332,9 @@ export default function JobsPage() {
                             "_blank",
                           );
                         } else {
-                          alert("ไม่พบข้อมูลพิกัดละติจูด/ลองจิจูด ของออเดอร์นี้");
+                          alert(
+                            "ไม่พบข้อมูลพิกัดละติจูด/ลองจิจูด ของออเดอร์นี้",
+                          );
                         }
                       }}
                       className="w-full bg-white/20 hover:bg-white/30 backdrop-blur-sm border border-white/40 text-white font-bold py-3.5 rounded-xl shadow-sm active:scale-95 transition-all flex items-center justify-center gap-2"
@@ -372,7 +414,7 @@ export default function JobsPage() {
                   strokeLinejoin="round"
                   strokeWidth="2"
                   d="M13 10V3L4 14h7v7l9-11h-7z"
-                ></path>
+                />
               </svg>
             </div>
             <p className="text-gray-500 text-xs font-medium">
@@ -380,7 +422,7 @@ export default function JobsPage() {
             </p>
           </div>
           <p className="text-2xl font-bold text-gray-800 mt-1">
-            0 <span className="text-sm font-normal text-gray-500">รอบ</span>
+            {summary.total_rounds} <span className="text-sm font-normal text-gray-500">รอบ</span>
           </p>
         </div>
 
@@ -398,48 +440,25 @@ export default function JobsPage() {
                   strokeLinejoin="round"
                   strokeWidth="2"
                   d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                ></path>
+                />
               </svg>
             </div>
             <p className="text-gray-500 text-xs font-medium">ค่ารอบสะสม</p>
           </div>
-          <p className="text-2xl font-bold text-green-600 mt-1">฿ 0</p>
+          <p className="text-2xl font-bold text-green-600 mt-1">฿ {summary.total_delivery_fee.toLocaleString()}</p>
         </div>
       </div>
-
-      {/* <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-xl shadow-sm mb-6">
-        <p className="text-sm font-bold text-yellow-800 mb-1 flex items-center gap-1">
-          <svg
-            className="w-4 h-4"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-            ></path>
-          </svg>
-          ข้อควรระวัง!
-        </p>
-        <p className="text-xs text-yellow-700 leading-relaxed">
-          ช่วงนี้ลูกค้าบ่นเรื่องลืมน้ำจิ้มซีฟู้ด รบกวนพี่ๆ
-          ไรเดอร์เช็คของในถุงให้ครบก่อนออกรถทุกครั้งนะครับ
-          และอย่าลืมถามเรื่องการเก็บเตาคืนด้วยครับ
-        </p>
-      </div> */}
-
 
       {confirmModal.isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
           <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl animate-slide-up border border-gray-100">
-            
-            {/* ไอคอนเตือนความจำ */}
-            <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${
-              confirmModal.nextStatus === "shipping" ? "bg-orange-100 text-orange-500" : "bg-green-100 text-green-500"
-            }`}>
+            <div
+              className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${
+                confirmModal.nextStatus === "shipping"
+                  ? "bg-orange-100 text-orange-500"
+                  : "bg-green-100 text-green-500"
+              }`}
+            >
               {confirmModal.nextStatus === "shipping" ? (
                 <span className="text-3xl">🛵</span>
               ) : (
@@ -448,30 +467,45 @@ export default function JobsPage() {
             </div>
 
             <h3 className="text-xl font-bold text-gray-800 text-center mb-2">
-              {confirmModal.nextStatus === "shipping" ? "ยืนยันรับออเดอร์?" : "ยืนยันส่งมอบสำเร็จ?"}
+              {confirmModal.nextStatus === "shipping"
+                ? "ยืนยันรับออเดอร์?"
+                : "ยืนยันส่งมอบสำเร็จ?"}
             </h3>
-            
+
             <p className="text-gray-500 text-sm text-center mb-6 leading-relaxed px-2">
               {confirmModal.nextStatus === "shipping"
                 ? "ตรวจสอบรายการอาหารและอุปกรณ์ครบถ้วนแล้วใช่หรือไม่?"
                 : "คุณได้ส่งมอบอาหารให้ลูกค้าและรับชำระเงิน (ถ้ามี) เรียบร้อยแล้วใช่หรือไม่?"}
             </p>
-            
+
             <div className="flex gap-3">
               <button
-                onClick={() => setConfirmModal({ isOpen: false, orderId: "", nextStatus: "" })}
+                onClick={() =>
+                  setConfirmModal({
+                    isOpen: false,
+                    orderId: "",
+                    nextStatus: "",
+                  })
+                }
                 className="flex-1 py-3.5 font-bold text-gray-600 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors"
               >
                 ยกเลิก
               </button>
               <button
                 onClick={() => {
-                  handleUpdateStatus(confirmModal.orderId, confirmModal.nextStatus);
-                  setConfirmModal({ isOpen: false, orderId: "", nextStatus: "" });
+                  handleUpdateStatus(
+                    confirmModal.orderId,
+                    confirmModal.nextStatus,
+                  );
+                  setConfirmModal({
+                    isOpen: false,
+                    orderId: "",
+                    nextStatus: "",
+                  });
                 }}
                 className={`flex-1 py-3.5 font-bold text-white rounded-xl shadow-lg transition-colors ${
-                  confirmModal.nextStatus === "shipping" 
-                    ? "bg-orange-500 hover:bg-orange-600 shadow-orange-500/30" 
+                  confirmModal.nextStatus === "shipping"
+                    ? "bg-orange-500 hover:bg-orange-600 shadow-orange-500/30"
                     : "bg-green-500 hover:bg-green-600 shadow-green-500/30"
                 }`}
               >
