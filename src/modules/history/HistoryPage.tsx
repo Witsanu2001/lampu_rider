@@ -1,26 +1,27 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState } from "react";
-import { getHistorys } from "../api/api_jobs"; 
+import { getHistorys } from "../api/api_jobs";
+import { useNavigate } from "react-router-dom";
 
 // ฟังก์ชันหาวันที่ปัจจุบัน
 const getTodayDateString = () => {
   const d = new Date();
   d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
-  return d.toISOString().split('T')[0];
+  return d.toISOString().split("T")[0];
 };
 
 export default function HistoryPage() {
   const [jobs, setJobs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  
+  const navigate = useNavigate();
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
   const [hasMore, setHasMore] = useState(true);
   const [isFetchingMore, setIsFetchingMore] = useState(false);
 
   const [selectedDate, setSelectedDate] = useState(getTodayDateString());
-  const [searchInput, setSearchInput] = useState(""); 
-  const [searchName, setSearchName] = useState("");   
+  const [searchInput, setSearchInput] = useState("");
+  const [searchName, setSearchName] = useState("");
 
   useEffect(() => {
     let isMounted = true;
@@ -96,10 +97,8 @@ export default function HistoryPage() {
 
   return (
     <div className="h-full w-full flex flex-col bg-gray-50 text-gray-800 overflow-hidden animate-fade-in">
-      
       {/* 🌟 Header & Toolbar */}
       <div className="shrink-0 px-5 pt-5 pb-4 border-b border-gray-200 z-10 bg-white shadow-sm">
-
         <div className="flex gap-3 items-center">
           {/* ช่องค้นหาชื่อ */}
           <div className="flex-1 flex bg-gray-50 border border-gray-200 rounded-xl overflow-hidden focus-within:border-emerald-500 focus-within:ring-1 focus-within:ring-emerald-500 transition-all">
@@ -108,10 +107,10 @@ export default function HistoryPage() {
               placeholder="ค้นหาชื่อลูกค้า..."
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
               className="flex-1 bg-transparent px-4 py-3 text-sm focus:outline-none text-gray-800"
             />
-            <button 
+            <button
               onClick={handleSearch}
               className="px-4 bg-gray-100 hover:bg-gray-200 transition-colors flex items-center justify-center text-gray-500"
             >
@@ -123,7 +122,11 @@ export default function HistoryPage() {
           <div className="relative shrink-0 w-12 h-12 bg-white rounded-xl shadow-sm border border-gray-200 flex flex-col items-center justify-between overflow-hidden group hover:border-emerald-400 transition-colors">
             {/* แถบเดือนสีแดง */}
             <div className="bg-red-500 w-full text-[10px] font-bold text-white text-center uppercase">
-              {selectedDate ? new Date(selectedDate).toLocaleDateString('th-TH', { month: 'short' }) : "ALL"}
+              {selectedDate
+                ? new Date(selectedDate).toLocaleDateString("th-TH", {
+                    month: "short",
+                  })
+                : "ALL"}
             </div>
             {/* ตัวเลขวัน */}
             <div className="text-xl font-black text-gray-800 leading-none mb-1.5">
@@ -181,6 +184,13 @@ export default function HistoryPage() {
             return (
               <div
                 key={job.id}
+                onClick={() =>
+                  navigate(`/job_detail/${job.id}`, {
+                    state: {
+                      from: "HistoryPage"
+                    },
+                  })
+                }
                 className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden p-4 sm:p-5 transition-all"
               >
                 <div className="flex justify-between items-start mb-3">
@@ -200,7 +210,9 @@ export default function HistoryPage() {
                 <div className="flex items-start gap-2 text-sm text-gray-600 mb-3 bg-gray-50 p-3 rounded-xl border border-gray-100">
                   <span className="mt-0.5 text-emerald-500 shrink-0">📍</span>
                   <span className="line-clamp-2 leading-relaxed">
-                    <span className="font-semibold mr-1 text-gray-800">คุณ {job.shipping?.recipient}:</span> 
+                    <span className="font-semibold mr-1 text-gray-800">
+                      คุณ {job.shipping?.recipient}:
+                    </span>
                     {job.shipping?.address}
                   </span>
                 </div>
@@ -226,7 +238,6 @@ export default function HistoryPage() {
             </p>
           </div>
         )}
-        
       </div>
     </div>
   );

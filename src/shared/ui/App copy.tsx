@@ -11,51 +11,56 @@ import ErrorBoundary from "./ErrorBoundary";
 import HistoryPage from "../../modules/history/HistoryPage";
 import StovesPage from "../../modules/Stove/StovesPage";
 import JobsPage from "../../modules/Job/JobsPage";
+// 🌟 นำเข้า JobsDetail เพื่อให้กดเข้าไปดูรายละเอียดงานได้
 import JobsDetail from "../../modules/Job/components/JobsDetail";
 
 import { signInWithCustomToken } from "firebase/auth";
 import { auth } from "../const/firebase";
 import { postLineAuth } from "../../modules/api/api_login";
+// 🌟 นำเข้าคำสั่งเซฟ Token
 import { setToken } from "../infra/auth/token";
 
+// 🌟 ใส่ LIFF ID ของคุณที่ได้จาก LINE Developers Console
 const LIFF_ID = "2010385468-Yj0pURp7";
+
+// 🌟 URL ของแอปคุณ (ต้องตรงกับ Endpoint URL ใน LINE Console)
 const APP_URL = "https://lampu-rider.web.app/";
-const isLocalhost = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
 
-export default function App() {
+export default function Appx() {
+  const [user, setUser] = useState<any>(() => {
+    const saved = localStorage.getItem("userData");
+    return saved ? JSON.parse(saved) : null;
+  });
 
-  const savedUserRaw = localStorage.getItem("userData");
-  const savedUser = savedUserRaw ? JSON.parse(savedUserRaw) : null;
-  const [user, setUser] = useState<any>(savedUser);
-  const [isAuth, setIsAuth] = useState<boolean>(() => isLocalhost && !!savedUser);
-  const [useLocalLogin, setUseLocalLogin] = useState<boolean>(() => isLocalhost && !savedUser);
-  const [loading, setLoading] = useState<boolean>(!isLocalhost); // ถ้าเป็น Localhost ไม่ต้องขึ้น Loading
+  const [isAuth, setIsAuth] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [useLocalLogin, setUseLocalLogin] = useState(false);
   const [liffError, setLiffError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (isLocalhost) {
-      return;
-    }
-
     const initLiff = async () => {
       try {
         await liff.init({ liffId: LIFF_ID });
         const loggedIn = liff.isLoggedIn();
         if (!loggedIn) {
           liff.login({ redirectUri: APP_URL });
-          return;
+          return; // หยุดการทำงานตรงนี้ เพื่อรอระบบเปลี่ยนหน้า
         }
-
         const lineToken = liff.getIDToken();
         if (lineToken) {
           try {
             const res = await postLineAuth(lineToken);
-            if (!res.ok) throw new Error(`Backend แจ้งเตือน: ${res.status}`);
+            if (!res.ok) throw new Error(`Backend แจ้งเตือน: ${res.status}`); // 🌟 เพิ่มบรรทัดนี้
 
             const data = await res.json();
-            if (!data.firebase_token) throw new Error("Backend ไม่ให้ Firebase Token");
+            if (!data.firebase_token)
+              throw new Error("Backend ไม่ให้ Firebase Token"); // 🌟 เพิ่มบรรทัดนี้
 
-            const userCredential = await signInWithCustomToken(auth, data.firebase_token);
+            // ถ้าผ่านมาได้ แปลว่า Backend ยอมรับ!
+            const userCredential = await signInWithCustomToken(
+              auth,
+              data.firebase_token,
+            );
             const firebaseToken = await userCredential.user.getIdToken(true);
             setToken(firebaseToken, 24);
           } catch (error) {
@@ -65,7 +70,7 @@ export default function App() {
         }
 
         const profile = await liff.getProfile();
-        
+
         const normalizedUser = {
           uid: profile.userId,
           displayName: profile.displayName,
@@ -76,7 +81,7 @@ export default function App() {
         setUser(normalizedUser);
         localStorage.setItem("userData", JSON.stringify(normalizedUser));
         setIsAuth(true);
-        setLoading(false);
+        setLoading(false); 
       } catch (error) {
         console.error("❌ LIFF Init Error:", error);
         setLiffError(error instanceof Error ? error.message : String(error));
@@ -93,12 +98,12 @@ export default function App() {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 text-gray-500 text-sm font-medium">
         <div className="w-10 h-10 border-4 border-gray-200 border-t-emerald-500 rounded-full animate-spin mb-4 shadow-sm"></div>
-        กำลังเชื่อมต่อระบบ...
+        กำลังเชื่อมต่อระบบ LINE...
       </div>
     );
   }
 
-  // 2. ถ้าต้องการใช้ LocalLogin (LIFF error หรือรันบน Localhost)
+  // 2. ถ้าต้องการใช้ LocalLogin (LIFF error)
   if (useLocalLogin) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 p-6">
@@ -107,10 +112,13 @@ export default function App() {
             <span className="text-2xl">⚠️</span>
           </div>
           <h2 className="text-xl font-bold text-gray-800 mb-2">
-            Local Login / ทดสอบระบบ
+            LIFF Login ล้มเหลว
           </h2>
           <p className="text-gray-500 text-xs mb-4">
-            {liffError || "คุณกำลังรันระบบบน Localhost หรือเชื่อมต่อ LINE ไม่ได้"}
+            {liffError || "ไม่สามารถเชื่อมต่อระบบ LINE ได้"}
+          </p>
+          <p className="text-gray-400 text-xs mb-6">
+            ใช้ Local Login แทนชั่วคราวเพื่อทดสอบ
           </p>
 
           <LocalLogin
@@ -126,7 +134,7 @@ export default function App() {
     );
   }
 
-  // 3. ถ้ามี Error จาก LIFF หรือยังไม่ได้ Auth บนหน้าเว็บจริง
+  // 3. ถ้ามี Error จาก LIFF หรือยังไม่ได้ Auth
   if (!isAuth) {
     return (
       <div className="mx-auto max-w-md w-full min-h-svh bg-gray-50 flex flex-col items-center justify-center p-6 text-center shadow-2xl">
@@ -151,7 +159,6 @@ export default function App() {
     );
   }
 
-  // 4. ถ้าล็อกอินสำเร็จแล้ว Render หน้าหลักของแอป
   return (
     <BrowserRouter>
       <div className="mx-auto max-w-md w-full min-h-svh bg-gray-50 flex flex-col relative shadow-2xl overflow-hidden">
@@ -163,7 +170,11 @@ export default function App() {
               <Route path="/" element={<JobsPage />} />
               <Route path="/history" element={<HistoryPage />} />
               <Route path="/stove" element={<StovesPage />} />
+
+              {/* 🌟 เพิ่ม Route สำหรับหน้าดูรายละเอียดออเดอร์ */}
               <Route path="/job_detail/:orderId" element={<JobsDetail />} />
+
+              {/* ถ้า URL ไม่ตรงกับข้างบนเลย ให้เด้งกลับมาหน้า Home (JobsPage) */}
               <Route path="*" element={<JobsPage />} />
             </Routes>
           </ErrorBoundary>

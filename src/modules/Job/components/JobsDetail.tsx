@@ -3,7 +3,6 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import "mapbox-gl/dist/mapbox-gl.css";
 import { getJobsById } from "../../api/api_jobs";
 
 export default function JobsDetail() {
@@ -73,12 +72,12 @@ export default function JobsDetail() {
   }
 
   return (
-    <div className="h-full p-6 w-full overflow-y-auto bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 relative">
+    <div className="h-full p-6 w-full overflow-y-auto bg-gray-50 text-gray-800 relative">
       {/* Header */}
       <div className="mb-6">
         <button
           onClick={() => navigate("/orders_user")}
-          className="flex items-center text-sm text-gray-600 dark:text-gray-400 hover:text-orange-600 dark:hover:text-orange-400 mb-3"
+          className="flex items-center text-sm text-gray-600 hover:text-orange-600 mb-3"
         >
           <svg
             className="w-4 h-4 mr-1"
@@ -95,34 +94,36 @@ export default function JobsDetail() {
           </svg>
           กลับไปหน้ารายการออเดอร์
         </button>
-        <h1 className="text-xl font-bold">รายละเอียดออเดอร์</h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+        {/* 🌟 เปลี่ยน h1 เป็น div */}
+        <div className="text-xl font-bold text-gray-800">รายละเอียดออเดอร์</div>
+        <p className="text-sm text-gray-500 mt-1">
           เลขที่ออเดอร์: {order.id}
         </p>
-        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+        <p className="text-xs text-gray-500 mt-0.5">
           {formatDate(order.created_at)}
         </p>
       </div>
 
       <div className="space-y-4">
         {/* Main Items */}
-        <div className="bg-white dark:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-600 shadow-sm p-4">
-          <h2 className="font-semibold mb-3 text-orange-600 dark:text-orange-400">
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+          {/* 🌟 เปลี่ยน h2 เป็น div */}
+          <div className="font-semibold mb-3 text-orange-600">
             รายการหลัก
-          </h2>
+          </div>
           <div className="space-y-2">
             {order?.mainItems?.map((item: any, index: number) => (
               <div
                 key={index}
-                className="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-600 last:border-0"
+                className="flex justify-between items-center py-2 border-b border-gray-100 last:border-0"
               >
                 <div>
-                  <p className="font-medium">{item.name}</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                  <p className="font-medium text-gray-800">{item.name}</p>
+                  <p className="text-xs text-gray-500">
                     ฿{item.price?.toLocaleString()} x {item.quantity}
                   </p>
                 </div>
-                <span className="font-bold">
+                <span className="font-bold text-gray-800">
                   ฿{item.subtotal?.toLocaleString()}
                 </span>
               </div>
@@ -132,23 +133,24 @@ export default function JobsDetail() {
 
         {/* Add-on Items */}
         {order.addOnItems?.length > 0 && (
-          <div className="bg-white dark:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-600 shadow-sm p-4">
-            <h2 className="font-semibold mb-3 text-orange-600 dark:text-orange-400">
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+            {/* 🌟 เปลี่ยน h2 เป็น div */}
+            <div className="font-semibold mb-3 text-orange-600">
               รายการเพิ่มเติม
-            </h2>
+            </div>
             <div className="space-y-2">
               {order.addOnItems.map((item: any, index: number) => (
                 <div
                   key={index}
-                  className="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-600 last:border-0"
+                  className="flex justify-between items-center py-2 border-b border-gray-100 last:border-0"
                 >
                   <div>
-                    <p className="font-medium">{item.name}</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                    <p className="font-medium text-gray-800">{item.name}</p>
+                    <p className="text-xs text-gray-500">
                       ฿{item.price?.toLocaleString()} x {item.quantity}
                     </p>
                   </div>
-                  <span className="font-bold">
+                  <span className="font-bold text-gray-800">
                     ฿{item.subtotal?.toLocaleString()}
                   </span>
                 </div>
@@ -158,47 +160,48 @@ export default function JobsDetail() {
         )}
 
         {/* Equipment */}
-        <div className="bg-white dark:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-600 shadow-sm p-4">
-          <h2 className="font-semibold mb-3 text-orange-600 dark:text-orange-400">
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+          {/* 🌟 เปลี่ยน h2 เป็น div */}
+          <div className="font-semibold mb-3 text-orange-600">
             อุปกรณ์
-          </h2>
+          </div>
           <div className="grid grid-cols-2 gap-2 text-sm">
             <div className="flex justify-between">
-              <span className="text-gray-600 dark:text-gray-400">เตา:</span>
-              <span>{order.equipment?.stoveCount} ชุด</span>
+              <span className="text-gray-600">เตา:</span>
+              <span className="text-gray-800">{order.equipment?.stoveCount} ชุด</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-600 dark:text-gray-400">กระทะ:</span>
-              <span>{order.equipment?.panCount} ใบ</span>
+              <span className="text-gray-600">กระทะ:</span>
+              <span className="text-gray-800">{order.equipment?.panCount} ใบ</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-600 dark:text-gray-400">ถ่าน:</span>
-              <span>{order.equipment?.charcoalCount} ก้อน</span>
+              <span className="text-gray-600">ถ่าน:</span>
+              <span className="text-gray-800">{order.equipment?.charcoalCount} ก้อน</span>
             </div>
             {order.equipment?.extraStoves > 0 && (
               <div className="flex justify-between">
-                <span className="text-gray-600 dark:text-gray-400">
+                <span className="text-gray-600">
                   เตาเพิ่ม:
                 </span>
-                <span>{order.equipment.extraStoves} ชุด</span>
+                <span className="text-gray-800">{order.equipment.extraStoves} ชุด</span>
               </div>
             )}
             {order.equipment?.extraPans > 0 && (
               <div className="flex justify-between">
-                <span className="text-gray-600 dark:text-gray-400">
+                <span className="text-gray-600">
                   กระทะเพิ่ม:
                 </span>
-                <span>{order.equipment.extraPans} ใบ</span>
+                <span className="text-gray-800">{order.equipment.extraPans} ใบ</span>
               </div>
             )}
           </div>
         </div>
 
-        {/* 🌟 Shipping (ปรับให้มีปุ่มดูสถานที่) */}
-        <div className="bg-white dark:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-600 shadow-sm p-4">
+        {/* 🌟 Shipping */}
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
           <div className="flex justify-between items-center mb-3">
-            <h2 className="font-semibold text-orange-600 dark:text-orange-400 flex items-center gap-2">
-              {/* 🌟 ไอคอนตำแหน่งที่ตั้ง */}
+            {/* 🌟 เปลี่ยน h2 เป็น div */}
+            <div className="font-semibold text-orange-600 flex items-center gap-2">
               <svg
                 className="w-5 h-5"
                 fill="none"
@@ -219,9 +222,8 @@ export default function JobsDetail() {
                 />
               </svg>
               ที่อยู่จัดส่ง
-            </h2>
+            </div>
 
-            {/* 🌟 ปุ่มกดเปิดแผนที่ */}
             <button
               onClick={() => {
                 const lat = order.shipping?.location?.lat;
@@ -241,25 +243,24 @@ export default function JobsDetail() {
             </button>
           </div>
 
-          <p className="text-sm">{order.shipping?.address}</p>
+          <p className="text-sm text-gray-800">{order.shipping?.address}</p>
 
-          <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+          <div className="mt-2 text-xs text-gray-500">
             <p>ค่าส่ง: ฿{order.shipping?.totalFee?.toLocaleString()}</p>
           </div>
         </div>
 
         {/* Home Image */}
         {order.home_image_url && (
-          <div className="bg-white dark:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-600 shadow-sm p-4">
-            <h2 className="font-semibold mb-3 text-orange-600 dark:text-orange-400">
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+            {/* 🌟 เปลี่ยน h2 เป็น div */}
+            <div className="font-semibold mb-3 text-orange-600">
               รูปบ้านลูกค้า
-            </h2>
-            {/* เปลี่ยน className ของ div และ img ด้านล่างนี้ครับ */}
-            <div className="rounded-lg overflow-hidden border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 p-2 flex justify-center">
+            </div>
+            <div className="rounded-lg overflow-hidden border border-gray-200 bg-gray-50 p-2 flex justify-center">
               <img
                 src={order.home_image_url}
                 alt="Home Image"
-                // ✨ แก้ไขบรรทัดนี้เช่นกันครับ
                 className="w-full max-h-80 object-contain rounded"
                 onError={(e) => {
                   e.currentTarget.src = "/placeholder.png";
@@ -270,32 +271,33 @@ export default function JobsDetail() {
         )}
 
         {/* Totals */}
-        <div className="bg-white dark:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-600 shadow-sm p-4">
-          <h2 className="font-semibold mb-3 text-orange-600 dark:text-orange-400">
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+          {/* 🌟 เปลี่ยน h2 เป็น div */}
+          <div className="font-semibold mb-3 text-orange-600">
             สรุปยอดชำระ
-          </h2>
-          <div className="space-y-2 text-sm">
+          </div>
+          <div className="space-y-2 text-sm text-gray-800">
             <div className="flex justify-between">
-              <span className="text-gray-600 dark:text-gray-400">
+              <span className="text-gray-600">
                 ยอดรายการหลัก:
               </span>
               <span>฿{order.totals?.cartTotal?.toLocaleString()}</span>
             </div>
             {order.totals?.addOnTotal > 0 && (
               <div className="flex justify-between">
-                <span className="text-gray-600 dark:text-gray-400">
+                <span className="text-gray-600">
                   ยอดรายการเพิ่มเติม:
                 </span>
                 <span>฿{order.totals.addOnTotal.toLocaleString()}</span>
               </div>
             )}
             <div className="flex justify-between">
-              <span className="text-gray-600 dark:text-gray-400">ค่าส่ง:</span>
+              <span className="text-gray-600">ค่าส่ง:</span>
               <span>฿{order.totals?.shippingFee?.toLocaleString()}</span>
             </div>
 
             <div className="flex justify-between">
-              <span className="text-gray-600 dark:text-gray-400">วิธีชำระเงิน:</span>
+              <span className="text-gray-600">วิธีชำระเงิน:</span>
               <span>
                 {order.payment?.method === "promptpay"
                   ? "พร้อมเพย์"
@@ -303,9 +305,9 @@ export default function JobsDetail() {
               </span>
             </div>
 
-            <div className="flex justify-between pt-2 border-t border-gray-200 dark:border-gray-600">
+            <div className="flex justify-between pt-2 border-t border-gray-200">
               <span className="font-bold">ยอดรวมทั้งหมด:</span>
-              <span className="font-bold text-lg text-orange-600 dark:text-orange-400">
+              <span className="font-bold text-lg text-orange-600">
                 ฿{order.totals?.grandTotal?.toLocaleString()}
               </span>
             </div>

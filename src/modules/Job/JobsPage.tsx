@@ -11,51 +11,49 @@ export default function JobsPage() {
   const navigate = useNavigate();
   const [jobs, setJobs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-
   const [refreshKey, setRefreshKey] = useState(0);
+
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    orderId: string;
+    nextStatus: string;
+  }>({
+    isOpen: false,
+    orderId: "",
+    nextStatus: "",
+  });
+
   const userDataString = localStorage.getItem("userData");
   const currentUser = userDataString ? JSON.parse(userDataString) : null;
 
-  console.log("🚀 JobsPage rendering, currentUser:", currentUser);
-
-  // 🌟 2. ตัวดักจับ (Listener) เมื่อแอดมินโยนงานมาให้ใหม่ (แบบ Realtime)
   useEffect(() => {
     if (!currentUser?.uid) {
-      console.log("⚠️ No currentUser.uid, skipping Firebase listener");
       return;
     }
 
-    console.log("📡 Setting up Firebase listener for:", currentUser.uid);
     let debounceTimer: ReturnType<typeof setTimeout>;
-    // ชี้เป้าไปที่โหนดคิวงานของไรเดอร์คนนี้โดยเฉพาะ
     const jobsRef = ref(db, `live_jobs/${currentUser.uid}`);
 
-    // ทันทีที่มีการเปลี่ยนแปลงในโหนดนี้ (แอดมินเพิ่มงาน, เปลี่ยนสถานะ) ฟังก์ชันนี้จะทำงาน
     const unsubscribe = onValue(jobsRef, () => {
       clearTimeout(debounceTimer);
-      // หน่วงเวลาเล็กน้อย (500ms) ป้องกันการยิง API รัวๆ ในกรณีแอดมินจัดคิวหลายออเดอร์พร้อมกัน
       debounceTimer = setTimeout(() => {
-        console.log("🔄 Refreshing jobs due to Firebase change");
-        setRefreshKey((prev) => prev + 1); // 🎯 สั่งให้ useEffect ตัวล่างดึง API อัตโนมัติ
+         // 👈 ใส่คำสั่งนี้กลับเข้ามา เพื่อบอกให้ระบบดึงข้อมูลใหม่
+         setRefreshKey((prev) => prev + 1); 
       }, 500);
     });
 
     return () => {
-      unsubscribe(); // ยกเลิกการฟังเมื่อปิดหน้าต่าง ป้องกันเครื่องหน่วง
+      unsubscribe();
       clearTimeout(debounceTimer);
     };
   }, [currentUser?.uid]);
 
-  // ฟังก์ชันดึงคิวงาน (จะถูกเรียกครั้งแรก และทุกครั้งที่ refreshKey เปลี่ยน)
   useEffect(() => {
     let isMounted = true;
 
     const fetchActiveJobs = async () => {
-      console.log("📥 Fetching jobs...");
-      // 🌟 นำ setLoading(true) ออกจากตรงนี้ เพื่อไม่ให้หน้าจอกระพริบขาวเวลาข้อมูลเข้าแบบเรียลไทม์
       try {
         const data = await getJobs();
-        console.log("✅ Jobs fetched:", data);
         if (isMounted) {
           const activeJobs = data.filter(
             (job: any) => job.status === "ready" || job.status === "shipping",
@@ -68,14 +66,12 @@ export default function JobsPage() {
           );
 
           setJobs(activeJobs);
-          console.log("🎯 Active jobs set:", activeJobs.length);
         }
       } catch (error) {
         console.error("❌ Error fetching jobs:", error);
       } finally {
         if (isMounted) {
-          setLoading(false); // ปิดฉากโหลดหลังจากโหลดเสร็จครั้งแรก
-          console.log("✅ Loading set to false");
+          setLoading(false);
         }
       }
     };
@@ -87,7 +83,6 @@ export default function JobsPage() {
     };
   }, [refreshKey]);
 
-  // ฟังก์ชันอัปเดตสถานะแบบไดนามิก
   const handleUpdateStatus = async (orderId: string, nextStatus: string) => {
     if (!currentUser?.uid) {
       alert("ไม่พบข้อมูลผู้ใช้ กรุณาล็อกอินใหม่");
@@ -96,15 +91,15 @@ export default function JobsPage() {
 
     try {
       await updateOrderStatus(orderId, nextStatus, currentUser.uid);
-
-      if (nextStatus === "shipping") {
-        alert("รับออเดอร์แล้ว! ขับขี่ปลอดภัยครับ 🛵");
-      } else if (nextStatus === "delivered") {
-        alert("จัดส่งสำเร็จ! ปิดงานเรียบร้อย 🎉");
+      if (nextStatus === "delivered") {
+        setJobs((prevJobs) => prevJobs.filter((job) => String(job.id) !== String(orderId)));
+      } else if (nextStatus === "shipping") {
+        setJobs((prevJobs) =>
+          prevJobs.map((job) =>
+            String(job.id) === String(orderId) ? { ...job, status: "shipping" } : job,
+          ),
+        );
       }
-
-      // ระบบจะรีเฟรชเองผ่าน onValue ด้านบนอยู่แล้ว แต่ใส่เผื่อไว้เป็น Fallback ได้ครับ
-      // setRefreshKey((prev) => prev + 1);
     } catch (error: any) {
       alert(`เกิดข้อผิดพลาด: ${error.message}`);
     }
@@ -120,15 +115,7 @@ export default function JobsPage() {
     });
   };
 
-  console.log(
-    "🎨 JobsPage render state - loading:",
-    loading,
-    "jobs:",
-    jobs.length,
-  );
-
   if (loading) {
-    console.log("⏳ Showing loading state");
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
         <div className="w-10 h-10 border-4 border-gray-200 border-t-orange-500 rounded-full animate-spin mb-4 shadow-sm"></div>
@@ -137,15 +124,14 @@ export default function JobsPage() {
     );
   }
 
-  console.log("✅ Showing jobs content");
   return (
     <div className="p-4 flex flex-col gap-4 animate-fade-in">
-      <h2 className="font-bold text-gray-800 flex items-center gap-2">
+      <div className="font-bold text-gray-800 text-lg flex items-center gap-2">
         <span>ออเดอร์ในคิวของคุณ</span>
         <span className="bg-orange-100 text-orange-600 px-2 py-0.5 rounded-full text-xs">
           {jobs.length}
         </span>
-      </h2>
+      </div>
 
       {jobs.length === 0 ? (
         <div className="bg-white rounded-2xl p-8 text-center shadow-sm border border-gray-100">
@@ -155,13 +141,12 @@ export default function JobsPage() {
           </p>
         </div>
       ) : (
-        jobs.map((order, index) => {
+        jobs.map((order) => {
           const isShipping = order.status === "shipping";
 
           return (
             <div
               key={order.id}
-              onClick={() => navigate(`/job_detail/${order.id}`)}
               className={`rounded-2xl p-5 text-white shadow-lg relative overflow-hidden transition-all duration-300 ${
                 isShipping
                   ? "bg-linear-to-br from-emerald-500 to-green-600"
@@ -181,7 +166,7 @@ export default function JobsPage() {
               </div>
 
               <div className="relative z-10">
-                <div className="flex justify-between items-start mb-3">
+                {/* <div className="flex justify-between items-start mb-3">
                   <span className="bg-white/20 backdrop-blur-md border border-white/30 text-white text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-1">
                     {isShipping ? "กำลังไปส่ง 🚀" : "ออเดอร์เตรียมส่ง 🛵"}
                     (คิวที่ {index + 1})
@@ -189,6 +174,34 @@ export default function JobsPage() {
                   <span className="text-sm text-white/80">
                     สั่งเมื่อ {formatTime(order?.created_at)} น.
                   </span>
+                </div> */}
+
+                <div className="flex justify-between items-start mb-3">
+                  {/* ป้ายแสดงเวลา (ของเดิม) */}
+                  <span className="bg-white/20 backdrop-blur-md border border-white/30 text-white text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-1">
+                    สั่งเมื่อ {formatTime(order?.created_at)} น.
+                  </span>
+
+                  {/* ปุ่มลูกศร */}
+                  <button
+                    onClick={() => navigate(`/job_detail/${order.id}`)}
+                    className="bg-white/20 hover:bg-white/30 backdrop-blur-md border border-white/30 text-white p-1.5 rounded-full transition-all active:scale-95 flex items-center justify-center"
+                  >
+                    {/* ไอคอนลูกศรชี้ขวา (Right Arrow) */}
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M9 5l7 7-7 7"
+                      />
+                    </svg>
+                  </button>
                 </div>
 
                 {/* แทนที่จะดึง [0] ให้วนลูปแทน */}
@@ -224,43 +237,46 @@ export default function JobsPage() {
                   </span>
                 </p>
 
-                <div className="bg-black/20 rounded-xl p-3 mb-5 border border-white/10 relative">
-                  <a
-                    href={`tel:${order?.shipping?.phone}`}
-                    className="absolute top-2 right-2 bg-green-500 hover:bg-green-600 text-white p-2 rounded-full shadow-lg transition-all active:scale-90"
-                    title="โทรหาลูกค้า"
-                  >
-                    <svg
-                      className="w-5 h-5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
+                <div className="bg-black/20 rounded-xl p-4 mb-5 border border-white/10">
+                  <div className="flex items-start justify-between gap-4">
+                    {/* ฝั่งข้อมูล */}
+                    <div className="flex-1">
+
+                      <p className="font-bold text-white text-base">
+                        {order?.shipping?.recipient}
+                      </p>
+
+                      <p className="text-xs text-white/60 mb-2">
+                        เบอร์โทร: {order?.shipping?.phone}
+                      </p>
+
+                      <span className="text-sm">📍</span>
+                      <span className="text-xs font-medium text-white/70">
+                        จัดส่งที่ {order?.shipping?.address}
+                      </span>
+                    </div>
+
+                    {/* ปุ่มโทร (ฝั่งขวา) */}
+                    <a
+                      href={`tel:${order?.shipping?.phone}`}
+                      className="shrink-0 bg-green-500 hover:bg-green-600 text-white p-3 rounded-full shadow-lg transition-all active:scale-95 flex items-center justify-center mt-1"
+                      title="โทรหาลูกค้า"
                     >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
-                      />
-                    </svg>
-                  </a>
-
-                  <p className="text-xs text-white/90 mb-1 flex justify-between pr-8">
-                    <span>
-                      📍 จัดส่งที่: {order?.shipping?.recipient} (
-                      {order?.shipping?.phone})
-                    </span>
-                  </p>
-
-                  <p className="font-medium text-sm leading-relaxed pr-8">
-                    {order?.shipping?.address}
-                  </p>
-
-                  {order?.shipping?.note && (
-                    <p className="text-xs mt-1 text-yellow-200">
-                      💡 จุดสังเกต: {order.shipping.note}
-                    </p>
-                  )}
+                      <svg
+                        className="w-5 h-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="2"
+                          d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
+                        />
+                      </svg>
+                    </a>
+                  </div>
                 </div>
 
                 {/* 🌟 ปุ่มกดต่างๆ ในการ์ดออเดอร์ */}
@@ -276,9 +292,7 @@ export default function JobsPage() {
                             "_blank",
                           );
                         } else {
-                          alert(
-                            "ไม่พบข้อมูลพิกัดละติจูด/ลองจิจูด ของออเดอร์นี้",
-                          );
+                          alert("ไม่พบข้อมูลพิกัดละติจูด/ลองจิจูด ของออเดอร์นี้");
                         }
                       }}
                       className="w-full bg-white/20 hover:bg-white/30 backdrop-blur-sm border border-white/40 text-white font-bold py-3.5 rounded-xl shadow-sm active:scale-95 transition-all flex items-center justify-center gap-2"
@@ -307,10 +321,11 @@ export default function JobsPage() {
 
                     <button
                       onClick={() =>
-                        handleUpdateStatus(
-                          order.id,
-                          isShipping ? "delivered" : "shipping",
-                        )
+                        setConfirmModal({
+                          isOpen: true,
+                          orderId: order.id,
+                          nextStatus: isShipping ? "delivered" : "shipping",
+                        })
                       }
                       className={`w-full bg-white font-bold py-3.5 rounded-xl shadow-md active:scale-95 transition-all flex items-center justify-center gap-2 ${
                         isShipping
@@ -392,7 +407,7 @@ export default function JobsPage() {
         </div>
       </div>
 
-      <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-xl shadow-sm mb-6">
+      {/* <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-xl shadow-sm mb-6">
         <p className="text-sm font-bold text-yellow-800 mb-1 flex items-center gap-1">
           <svg
             className="w-4 h-4"
@@ -414,7 +429,58 @@ export default function JobsPage() {
           ไรเดอร์เช็คของในถุงให้ครบก่อนออกรถทุกครั้งนะครับ
           และอย่าลืมถามเรื่องการเก็บเตาคืนด้วยครับ
         </p>
-      </div>
+      </div> */}
+
+
+      {confirmModal.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl animate-slide-up border border-gray-100">
+            
+            {/* ไอคอนเตือนความจำ */}
+            <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${
+              confirmModal.nextStatus === "shipping" ? "bg-orange-100 text-orange-500" : "bg-green-100 text-green-500"
+            }`}>
+              {confirmModal.nextStatus === "shipping" ? (
+                <span className="text-3xl">🛵</span>
+              ) : (
+                <span className="text-3xl">🎉</span>
+              )}
+            </div>
+
+            <h3 className="text-xl font-bold text-gray-800 text-center mb-2">
+              {confirmModal.nextStatus === "shipping" ? "ยืนยันรับออเดอร์?" : "ยืนยันส่งมอบสำเร็จ?"}
+            </h3>
+            
+            <p className="text-gray-500 text-sm text-center mb-6 leading-relaxed px-2">
+              {confirmModal.nextStatus === "shipping"
+                ? "ตรวจสอบรายการอาหารและอุปกรณ์ครบถ้วนแล้วใช่หรือไม่?"
+                : "คุณได้ส่งมอบอาหารให้ลูกค้าและรับชำระเงิน (ถ้ามี) เรียบร้อยแล้วใช่หรือไม่?"}
+            </p>
+            
+            <div className="flex gap-3">
+              <button
+                onClick={() => setConfirmModal({ isOpen: false, orderId: "", nextStatus: "" })}
+                className="flex-1 py-3.5 font-bold text-gray-600 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors"
+              >
+                ยกเลิก
+              </button>
+              <button
+                onClick={() => {
+                  handleUpdateStatus(confirmModal.orderId, confirmModal.nextStatus);
+                  setConfirmModal({ isOpen: false, orderId: "", nextStatus: "" });
+                }}
+                className={`flex-1 py-3.5 font-bold text-white rounded-xl shadow-lg transition-colors ${
+                  confirmModal.nextStatus === "shipping" 
+                    ? "bg-orange-500 hover:bg-orange-600 shadow-orange-500/30" 
+                    : "bg-green-500 hover:bg-green-600 shadow-green-500/30"
+                }`}
+              >
+                ยืนยัน
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

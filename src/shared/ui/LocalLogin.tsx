@@ -27,9 +27,6 @@ export default function LocalLogin({ onSuccess }: LocalLoginProps) {
     try {
       setLoading(true);
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      console.log("Firebase Local Login Success!");
-      
-      // 🌟 2. เมื่อล็อกอินสำเร็จ ให้ส่งข้อมูลกลับไปที่ App.tsx เพื่อปลดล็อกหน้า UI
       onSuccess({
         uid: userCredential.user.uid,
         displayName: userCredential.user.email?.split('@')[0] || "Rider",

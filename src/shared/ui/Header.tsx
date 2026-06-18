@@ -12,7 +12,6 @@ export default function Header({ user }: HeaderProps) {
       <div className="flex items-center gap-3">
         <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden border-2 border-green-500 shadow-sm">
           <img 
-            // 🌟 เช็คว่ามี photoURL ไหม ถ้าไม่มีให้ใช้ตัวอักษรย่อจากชื่อแทน
             src={user?.photoURL || `https://ui-avatars.com/api/?name=${user?.displayName || 'Rider'}&background=0D8ABC&color=fff`} 
             alt="Profile" 
             className="w-full h-full object-cover"
@@ -22,7 +21,6 @@ export default function Header({ user }: HeaderProps) {
             }}
           />
         </div>
-        {/* 🌟 เพิ่มส่วนแสดงชื่อไรเดอร์ */}
         <div className="flex flex-col">
           <span className="font-bold text-sm text-gray-800">
             {user?.displayName || "ผู้ขับขี่"}
