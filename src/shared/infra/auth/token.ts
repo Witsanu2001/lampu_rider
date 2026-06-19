@@ -53,31 +53,31 @@ export const isAuthenticated = (): boolean => {
 }
 
 export async function getFreshToken(): Promise<string> {
-
-  const savedToken = getToken();
-  if (savedToken && !isTokenExpired()) {
-    return savedToken;
-  }
+  // 1. ดึงข้อมูล User ปัจจุบันจาก Firebase
+  let user = auth.currentUser;
   
-  const user = await new Promise<any>((resolve) => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      unsubscribe();
-      resolve(currentUser);
+  // 2. ถ้าเพิ่งกด F5 โหลดหน้าเว็บใหม่ ข้อมูล user อาจจะมาไม่ทัน ให้รอจาก Observer
+  if (!user) {
+    user = await new Promise<any>((resolve) => {
+      const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+        unsubscribe();
+        resolve(currentUser);
+      });
     });
-  });
+  }
 
   if (user) {
     try {
-      const newToken = await user.getIdToken(true); 
-      setToken(newToken, 24);
-      return newToken;
+      // 🌟 ไม้ตายอยู่ตรงนี้: getIdToken() จะทำการเช็กให้ว่า Token หมดอายุ 1 ชม. หรือยัง
+      // ถ้าใกล้หมดอายุ มันจะยิงไปขอ Token อันใหม่จากเซิร์ฟเวอร์ให้ "อัตโนมัติ" แบบเนียนๆ!
+      const token = await user.getIdToken();
+      
+      // อัปเดต Token ใหม่ลง LocalStorage ไว้เป็นตัวสำรอง
+      setToken(token, 24); 
+      return token;
     } catch (error) {
       console.error("Error getting fresh token:", error);
     }
-  }
-
-  if (savedToken) {
-    return savedToken;
   }
 
   console.error("❌ Session expired or no token found.");

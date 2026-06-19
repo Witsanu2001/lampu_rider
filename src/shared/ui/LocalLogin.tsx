@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../const/firebase';
+import { setToken } from '../infra/auth/token';
 
 // 🌟 1. เพิ่ม Interface ให้รับฟังก์ชัน onSuccess
 interface LocalLoginProps {
@@ -27,6 +28,11 @@ export default function LocalLogin({ onSuccess }: LocalLoginProps) {
     try {
       setLoading(true);
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      
+      // 🌟 เพิ่ม 2 บรรทัดนี้ เพื่อให้ LocalLogin เก็บ Token ด้วย
+      const firebaseToken = await userCredential.user.getIdToken();
+      setToken(firebaseToken, 24);
+
       onSuccess({
         uid: userCredential.user.uid,
         displayName: userCredential.user.email?.split('@')[0] || "Rider",
