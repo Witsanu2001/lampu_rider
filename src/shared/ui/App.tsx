@@ -13,23 +13,30 @@ import StovesPage from "../../modules/Stove/StovesPage";
 import JobsPage from "../../modules/Job/JobsPage";
 import JobsDetail from "../../modules/Job/components/JobsDetail";
 
-import { signInWithCustomToken } from "firebase/auth";
+// 🌟 เพิ่ม onAuthStateChanged เข้ามา
+import { signInWithCustomToken, onAuthStateChanged } from "firebase/auth";
 import { auth } from "../const/firebase";
 import { postLineAuth } from "../../modules/api/api_login";
 import { setToken } from "../infra/auth/token";
 
 const LIFF_ID = "2010385468-Yj0pURp7";
 const APP_URL = "https://lampu-rider.web.app/";
-const isLocalhost = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+const isLocalhost =
+  window.location.hostname === "localhost" ||
+  window.location.hostname === "127.0.0.1";
 
 export default function App() {
-
   const savedUserRaw = localStorage.getItem("userData");
   const savedUser = savedUserRaw ? JSON.parse(savedUserRaw) : null;
+
   const [user, setUser] = useState<any>(savedUser);
-  const [isAuth, setIsAuth] = useState<boolean>(() => isLocalhost && !!savedUser);
-  const [useLocalLogin, setUseLocalLogin] = useState<boolean>(() => isLocalhost && !savedUser);
-  const [loading, setLoading] = useState<boolean>(!isLocalhost); // ถ้าเป็น Localhost ไม่ต้องขึ้น Loading
+  const [isAuth, setIsAuth] = useState<boolean>(
+    () => isLocalhost && !!savedUser,
+  );
+  const [useLocalLogin, setUseLocalLogin] = useState<boolean>(
+    () => isLocalhost && !savedUser,
+  );
+  const [loading, setLoading] = useState<boolean>(!isLocalhost);
   const [liffError, setLiffError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -37,8 +44,34 @@ export default function App() {
       return;
     }
 
-    const initLiff = async () => {
+    const initSystem = async () => {
       try {
+        // 🚀 1. Fast Track: เช็คก่อนว่า Firebase ในเครื่องยังจำล็อกอินเดิมได้ไหม
+        const fbUser = await new Promise<any>((resolve) => {
+          const unsubscribe = onAuthStateChanged(auth, (u) => {
+            unsubscribe();
+            resolve(u);
+          });
+        });
+
+        // 🌟 แก้ไขตรงนี้: ดึงข้อมูลจาก LocalStorage ภายใน useEffect โดยตรง
+        // เพื่อป้องกันปัญหา React Hook missing dependency และ Infinite Loop
+        const currentSavedUserRaw = localStorage.getItem("userData");
+        const currentSavedUser = currentSavedUserRaw
+          ? JSON.parse(currentSavedUserRaw)
+          : null;
+
+        // 🚀 2. ถ้าเครื่องจำได้ และมีข้อมูล User ใน LocalStorage -> เด้งเข้าแอปเลย!!
+        if (fbUser && currentSavedUser) {
+          setUser(currentSavedUser);
+          setIsAuth(true);
+          setLoading(false);
+
+          fbUser.getIdToken(true).then((token: string) => setToken(token, 24));
+          return;
+        }
+
+        // 🐢 3. ถ้าไม่มีประวัติ (เข้าครั้งแรก หรือเพิ่งเตะออก) ค่อยรัน LIFF ตามปกติ
         await liff.init({ liffId: LIFF_ID });
         const loggedIn = liff.isLoggedIn();
         if (!loggedIn) {
@@ -53,9 +86,13 @@ export default function App() {
             if (!res.ok) throw new Error(`Backend แจ้งเตือน: ${res.status}`);
 
             const data = await res.json();
-            if (!data.firebase_token) throw new Error("Backend ไม่ให้ Firebase Token");
+            if (!data.firebase_token)
+              throw new Error("Backend ไม่ให้ Firebase Token");
 
-            const userCredential = await signInWithCustomToken(auth, data.firebase_token);
+            const userCredential = await signInWithCustomToken(
+              auth,
+              data.firebase_token,
+            );
             const firebaseToken = await userCredential.user.getIdToken(true);
             setToken(firebaseToken, 24);
           } catch (error) {
@@ -65,7 +102,7 @@ export default function App() {
         }
 
         const profile = await liff.getProfile();
-        
+
         const normalizedUser = {
           uid: profile.userId,
           displayName: profile.displayName,
@@ -78,15 +115,15 @@ export default function App() {
         setIsAuth(true);
         setLoading(false);
       } catch (error) {
-        console.error("❌ LIFF Init Error:", error);
+        console.error("❌ System Init Error:", error);
         setLiffError(error instanceof Error ? error.message : String(error));
         setUseLocalLogin(true);
         setLoading(false);
       }
     };
 
-    initLiff();
-  }, []);
+    initSystem();
+  }, []); // ✅ ปล่อยวงเล็บว่างไว้แบบนี้ได้เลย ไม่ต้องใส่ dependency แล้ว
 
   // 1. หน้าจอตอนกำลังโหลด หรือ รอ LINE กำลัง Redirect
   if (loading) {
@@ -110,7 +147,8 @@ export default function App() {
             Local Login / ทดสอบระบบ
           </h2>
           <p className="text-gray-500 text-xs mb-4">
-            {liffError || "คุณกำลังรันระบบบน Localhost หรือเชื่อมต่อ LINE ไม่ได้"}
+            {liffError ||
+              "คุณกำลังรันระบบบน Localhost หรือเชื่อมต่อ LINE ไม่ได้"}
           </p>
 
           <LocalLogin

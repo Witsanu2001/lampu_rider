@@ -77,7 +77,7 @@ firebase deploy --only hosting:rider
 
 
 git add .
-git commit -m "save work on main"
+git commit -m "save work on main v5.2"
 git push origin
 
 git fetch
