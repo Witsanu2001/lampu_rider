@@ -10,8 +10,9 @@ export default function JobsPage() {
   const [jobs, setJobs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [refuseReason, setRefuseReason] = useState("");
+  const [customRefuseReason, setCustomRefuseReason] = useState("");
 
-  // 🌟 2. สร้าง Reference สำหรับชี้ไปที่จุดบนสุดของหน้า
   const topRef = useRef<HTMLDivElement>(null);
 
   const [confirmModal, setConfirmModal] = useState<{
@@ -102,7 +103,6 @@ export default function JobsPage() {
           prevJobs.filter((job) => String(job.id) !== String(orderId)),
         );
       } else if (nextStatus === "shipping") {
-        // 🌟 1. เปลี่ยนเป็นการ์ดสีเขียวก่อน (ยังไม่ย้ายตำแหน่ง)
         setJobs((prevJobs) =>
           prevJobs.map((job) =>
             String(job.id) === String(orderId)
@@ -111,7 +111,7 @@ export default function JobsPage() {
           ),
         );
 
-        // 🌟 2. หน่วงเวลา 0.5 วินาทีให้เห็นการ์ดสีเขียวชัดๆ แล้วค่อยดันขึ้นบนสุด
+        setRefreshKey((prev) => prev + 1);
         setTimeout(() => {
           setJobs((prevJobs) => {
             const updatedJobs = [...prevJobs];
@@ -163,7 +163,7 @@ export default function JobsPage() {
     };
 
     fetchSummary();
-  }, [currentUser?.uid, refreshKey]);
+  }, [currentUser?.uid]);
 
   const formatTime = (dateString: string) => {
     if (!dateString) return "";
@@ -322,44 +322,69 @@ export default function JobsPage() {
 
                 <div className="flex flex-col gap-2">
                   <div className="flex flex-row gap-2">
-                    <button
-                      onClick={() => {
-                        const lat = order?.shipping?.location?.lat;
-                        const lng = order?.shipping?.location?.lng;
-                        if (lat && lng) {
-                          window.open(
-                            `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`,
-                            "_blank",
-                          );
-                        } else {
-                          alert(
-                            "ไม่พบข้อมูลพิกัดละติจูด/ลองจิจูด ของออเดอร์นี้",
-                          );
-                        }
-                      }}
-                      className="w-full bg-white/20 hover:bg-white/30 backdrop-blur-sm border border-white/40 text-white font-bold py-3.5 rounded-xl shadow-sm active:scale-95 transition-all flex items-center justify-center gap-2"
-                    >
-                      <svg
-                        className="w-5 h-5"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth="2.5"
-                          d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                        />
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth="2.5"
-                          d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-                        />
-                      </svg>
-                      นำทาง
-                    </button>
+                    {(() => {
+                      const lat = order?.shipping?.location?.lat;
+                      const lng = order?.shipping?.location?.lng;
+                      const hasLocation = !!(lat && lng); // มีพิกัดครบไหม (true/false)
+
+                      return (
+                        <>
+                          {/* 🌟 1. ปุ่มปฏิเสธ (แสดงตอนยังไม่ได้รับงาน / การ์ดสีส้ม) */}
+                          {!isShipping && (
+                            <button
+                              onClick={() =>
+                                setConfirmModal({
+                                  isOpen: true,
+                                  orderId: order.id,
+                                  nextStatus: "cancel", // ส่งค่าไปให้ Backend ปฏิเสธงาน
+                                })
+                              }
+                              className="w-full bg-red-500/80 hover:bg-red-600/80 backdrop-blur-sm border border-white/20 text-white font-bold py-3.5 rounded-xl shadow-sm active:scale-95 transition-all flex items-center justify-center gap-2"
+                            >
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                              ปฏิเสธ
+                            </button>
+                          )}
+
+                          {/* 🌟 2. ปุ่มนำทาง (แสดงตอนรับงานแล้ว 'shipping' + ต้องมีพิกัดเท่านั้น) */}
+                          {isShipping && hasLocation && (
+                            <button
+                              onClick={() => {
+                                // เปลี่ยน URL เป็นลิงก์ที่ใช้เปิดระบบนำทางของ Google Maps โดยตรง
+                                window.open(
+                                  `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`,
+                                  "_blank",
+                                );
+                              }}
+                              className="w-full bg-white/20 hover:bg-white/30 backdrop-blur-sm border border-white/40 text-white font-bold py-3.5 rounded-xl shadow-sm active:scale-95 transition-all flex items-center justify-center gap-2"
+                            >
+                              <svg
+                                className="w-5 h-5"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth="2.5"
+                                  d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                                />
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth="2.5"
+                                  d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                                />
+                              </svg>
+                              นำทาง
+                            </button>
+                          )}
+                        </>
+                      );
+                    })()}
 
                     <button
                       onClick={() =>
@@ -418,11 +443,11 @@ export default function JobsPage() {
               </svg>
             </div>
             <p className="text-gray-500 text-xs font-medium">
-              วิ่งไปแล้ววันนี้
+              ออเดอร์วันนี้
             </p>
           </div>
           <p className="text-2xl font-bold text-gray-800 mt-1">
-            {summary.total_rounds} <span className="text-sm font-normal text-gray-500">รอบ</span>
+            {summary.total_rounds} <span className="text-sm font-normal text-gray-500">ชุด</span>
           </p>
         </div>
 
@@ -443,7 +468,7 @@ export default function JobsPage() {
                 />
               </svg>
             </div>
-            <p className="text-gray-500 text-xs font-medium">ค่ารอบสะสม</p>
+            <p className="text-gray-500 text-xs font-medium">ค่าออเดอร์สะสม</p>
           </div>
           <p className="text-2xl font-bold text-green-600 mt-1">฿ {summary.total_delivery_fee.toLocaleString()}</p>
         </div>
@@ -507,6 +532,150 @@ export default function JobsPage() {
                   confirmModal.nextStatus === "shipping"
                     ? "bg-orange-500 hover:bg-orange-600 shadow-orange-500/30"
                     : "bg-green-500 hover:bg-green-600 shadow-green-500/30"
+                }`}
+              >
+                ยืนยัน
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {confirmModal.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl animate-slide-up border border-gray-100">
+            {/* 🌟 ไอคอนด้านบน */}
+            <div
+              className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${
+                confirmModal.nextStatus === "shipping"
+                  ? "bg-orange-100 text-orange-500"
+                  : confirmModal.nextStatus === "cancel"
+                    ? "bg-red-100 text-red-500"
+                    : "bg-green-100 text-green-500"
+              }`}
+            >
+              {confirmModal.nextStatus === "shipping" ? (
+                <span className="text-3xl">🛵</span>
+              ) : confirmModal.nextStatus === "cancel" ? (
+                <span className="text-3xl">❌</span>
+              ) : (
+                <span className="text-3xl">🎉</span>
+              )}
+            </div>
+
+            {/* 🌟 หัวข้อ */}
+            <h3 className="text-xl font-bold text-gray-800 text-center mb-2">
+              {confirmModal.nextStatus === "shipping"
+                ? "ยืนยันรับออเดอร์?"
+                : confirmModal.nextStatus === "cancel"
+                  ? "ปฏิเสธรับออเดอร์?"
+                  : "ยืนยันส่งมอบสำเร็จ?"}
+            </h3>
+
+            {/* 🌟 ข้อความ หรือ ตัวเลือกเหตุผล */}
+            {confirmModal.nextStatus === "cancel" ? (
+              <div className="mb-6 text-left">
+                <p className="text-gray-500 text-sm text-center mb-4 leading-relaxed px-2">
+                  คุณแน่ใจหรือไม่ที่จะปฏิเสธงานนี้? <br />
+                  <span className="text-red-500 text-xs">โปรดระบุเหตุผลเพื่อส่งงานกลับไปที่ส่วนกลาง</span>
+                </p>
+
+                {/* 🌟 รายการตัวเลือกเหตุผล */}
+                <div className="space-y-2 mb-3 max-h-48 overflow-y-auto pr-1">
+                  {[
+                    "ต้องการเปลี่ยนผู้จัดส่ง",
+                    "ยังไม่สะดวกรับงานในขณะนี้",
+                    "อื่นๆ",
+                  ].map((option) => (
+                    <label
+                      key={option}
+                      className={`flex items-center gap-3 p-3 border rounded-xl cursor-pointer transition-colors ${
+                        refuseReason === option
+                          ? "border-red-500 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 font-bold"
+                          : "border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 text-gray-700 dark:text-gray-300"
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="refuse_reason"
+                        value={option}
+                        checked={refuseReason === option}
+                        onChange={(e) => setRefuseReason(e.target.value)}
+                        className="w-4 h-4 text-red-500 border-gray-300 focus:ring-red-500 cursor-pointer"
+                      />
+                      <span className="text-sm">{option}</span>
+                    </label>
+                  ))}
+                </div>
+
+                {/* 🌟 ช่องกรอกข้อความ (จะโชว์เมื่อเลือก "อื่นๆ") */}
+                {refuseReason === "อื่นๆ" && (
+                  <textarea
+                    className="w-full border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 resize-none animate-fade-in"
+                    placeholder="โปรดระบุเหตุผลเพิ่มเติม..."
+                    rows={2}
+                    value={customRefuseReason}
+                    onChange={(e) => setCustomRefuseReason(e.target.value)}
+                  />
+                )}
+              </div>
+            ) : (
+              <p className="text-gray-500 text-sm text-center mb-6 leading-relaxed px-2">
+                {confirmModal.nextStatus === "shipping"
+                  ? "ตรวจสอบรายการอาหารและอุปกรณ์ครบถ้วนแล้วใช่หรือไม่?"
+                  : "คุณได้ส่งมอบอาหารให้ลูกค้าและรับชำระเงิน (ถ้ามี) เรียบร้อยแล้วใช่หรือไม่?"}
+              </p>
+            )}
+
+            {/* 🌟 ปุ่มกดยกเลิก / ยืนยัน */}
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setConfirmModal({
+                    isOpen: false,
+                    orderId: "",
+                    nextStatus: "",
+                  });
+                  setRefuseReason("");
+                  setCustomRefuseReason("");
+                }}
+                className="flex-1 py-3.5 font-bold text-gray-600 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors"
+              >
+                ยกเลิก
+              </button>
+              <button
+                onClick={() => {
+                  // ดักเช็คกรณีลืมเลือกเหตุผล
+                  if (confirmModal.nextStatus === "cancel") {
+                    if (!refuseReason) {
+                      alert("กรุณาเลือกเหตุผลการปฏิเสธงานครับ");
+                      return;
+                    }
+                    if (refuseReason === "อื่นๆ" && !customRefuseReason.trim()) {
+                      alert("กรุณาระบุเหตุผลเพิ่มเติมครับ");
+                      return;
+                    }
+                  }
+
+                  handleUpdateStatus(
+                    confirmModal.orderId,
+                    confirmModal.nextStatus,
+                  );
+
+                  setConfirmModal({
+                    isOpen: false,
+                    orderId: "",
+                    nextStatus: "",
+                  });
+                  setRefuseReason("");
+                  setCustomRefuseReason("");
+                }}
+                className={`flex-1 py-3.5 font-bold text-white rounded-xl shadow-lg transition-colors ${
+                  confirmModal.nextStatus === "shipping"
+                    ? "bg-orange-500 hover:bg-orange-600 shadow-orange-500/30"
+                    : confirmModal.nextStatus === "refuse"
+                      ? "bg-red-500 hover:bg-red-600 shadow-red-500/30"
+                      : "bg-green-500 hover:bg-green-600 shadow-green-500/30"
                 }`}
               >
                 ยืนยัน

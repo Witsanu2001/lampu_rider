@@ -167,7 +167,7 @@ export default function StoveSuccess() {
           </div>
         ) : jobs.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-gray-400">
-            <span className="text-6xl mb-4 opacity-50">🫙</span>
+            <span className="text-6xl mb-4 opacity-50">♨️</span>
             <p className="text-lg font-medium">ไม่พบรายการเก็บสำเร็จ</p>
           </div>
         ) : (

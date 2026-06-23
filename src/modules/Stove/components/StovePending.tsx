@@ -123,7 +123,7 @@ export default function StovePending() {
   if (jobs.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-gray-400">
-        <span className="text-6xl mb-4 opacity-50">🫙</span>
+        <span className="text-6xl mb-4 opacity-50">♨️</span>
         <p className="text-lg font-medium">ไม่มีงานรอเก็บเตาในขณะนี้</p>
       </div>
     );
