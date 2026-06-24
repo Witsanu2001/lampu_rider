@@ -192,7 +192,8 @@ export default function App() {
   // 4. ถ้าล็อกอินสำเร็จแล้ว Render หน้าหลักของแอป
   return (
     <BrowserRouter>
-      <div className="mx-auto max-w-md w-full min-h-svh bg-gray-50 flex flex-col relative shadow-2xl overflow-hidden">
+      {/* 🌟 เพิ่ม dark:bg-gray-900 และ transition-colors */}
+      <div className="mx-auto max-w-md w-full min-h-svh bg-gray-50 dark:bg-gray-900 flex flex-col relative shadow-2xl overflow-hidden transition-colors duration-300">
         <Header user={user} setUser={setUser} />
 
         <main className="flex-1 overflow-y-auto pb-20 scroll-smooth">
