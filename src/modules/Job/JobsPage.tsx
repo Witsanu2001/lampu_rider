@@ -28,7 +28,10 @@ export default function JobsPage() {
   const userDataString = localStorage.getItem("userData");
   const currentUser = userDataString ? JSON.parse(userDataString) : null;
 
-  const [summary, setSummary] = useState({ total_rounds: 0, total_delivery_fee: 0 });
+  const [summary, setSummary] = useState({
+    total_rounds: 0,
+    total_delivery_fee: 0,
+  });
 
   useEffect(() => {
     if (!currentUser?.uid) {
@@ -162,20 +165,22 @@ export default function JobsPage() {
     fetchSummary();
   }, [currentUser?.uid]);
 
-  const formatTime = (dateString: string) => {
-    if (!dateString) return "";
-    const date = new Date(dateString);
-    return date.toLocaleTimeString("th-TH", {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
+  // const formatTime = (dateString: string) => {
+  //   if (!dateString) return "";
+  //   const date = new Date(dateString);
+  //   return date.toLocaleTimeString("th-TH", {
+  //     hour: "2-digit",
+  //     minute: "2-digit",
+  //   });
+  // };
 
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
         <div className="w-10 h-10 border-4 border-gray-200 dark:border-gray-700 border-t-orange-500 rounded-full animate-spin mb-4 shadow-sm"></div>
-        <div className="text-gray-500 dark:text-gray-400 font-medium">กำลังโหลดคิวงาน...</div>
+        <div className="text-gray-500 dark:text-gray-400 font-medium">
+          กำลังโหลดคิวงาน...
+        </div>
       </div>
     );
   }
@@ -195,7 +200,9 @@ export default function JobsPage() {
       {/* 🌟 Job Cards */}
       {jobs.length === 0 ? (
         <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 text-center shadow-sm border border-gray-100 dark:border-gray-700 transition-colors">
-          <p className="text-gray-500 dark:text-gray-400">ตอนนี้คุณยังไม่มีคิวงานครับ</p>
+          <p className="text-gray-500 dark:text-gray-400">
+            ตอนนี้คุณยังไม่มีคิวงานครับ
+          </p>
           <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">
             รอแอดมินมอบหมายงานสักครู่นะ 🛵
           </p>
@@ -214,7 +221,11 @@ export default function JobsPage() {
               }`}
             >
               <div className="absolute -top-4 -right-4 opacity-10 pointer-events-none">
-                <svg className="w-32 h-32" fill="currentColor" viewBox="0 0 24 24">
+                <svg
+                  className="w-32 h-32"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                >
                   <path d="M12 2C12 2 7 6.48 7 11.5C7 14.54 9.46 17 12.5 17C15.54 17 18 14.54 18 11.5C18 6.48 13 2 13 2H12ZM12.5 15C10.57 15 9 13.43 9 11.5C9 9.3 11.41 6.55 12.5 5.37C13.59 6.55 16 9.3 16 11.5C16 13.43 14.43 15 12.5 15Z" />
                   <path d="M4 22H21V20H4V22Z" />
                 </svg>
@@ -222,62 +233,116 @@ export default function JobsPage() {
 
               <div className="relative z-10">
                 <div className="flex justify-between items-start mb-3">
-                  <span className="bg-white/20 backdrop-blur-md border border-white/30 text-white text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-1">
-                    สั่งเมื่อ {formatTime(order?.created_at)} น.
-                  </span>
+                  {/* 🌟 เพิ่ม text-left และ flex-1 ที่นี่ */}
+                  <div className="flex flex-col gap-1 text-left flex-1 pr-4">
+                    {order?.mainItems && order.mainItems.length > 0 ? (
+                      order.mainItems.map((item: any, idx: number) => (
+                        <h3 key={idx} className="text-xl font-bold mb-1">
+                          {item.name} x{item.quantity}
+                        </h3>
+                      ))
+                    ) : (
+                      <h3 className="text-xl font-bold mb-1">
+                        ไม่พบรายการหลัก
+                      </h3>
+                    )}
+                  </div>
                   <button
                     onClick={() => navigate(`/job_detail/${order.id}`)}
-                    className="bg-white/20 hover:bg-white/30 backdrop-blur-md border border-white/30 text-white p-1.5 rounded-full transition-all active:scale-95 flex items-center justify-center"
+                    className="bg-white/20 hover:bg-white/30 backdrop-blur-md border border-white/30 text-white p-1.5 rounded-full transition-all active:scale-95 flex items-center justify-center shrink-0"
                   >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M9 5l7 7-7 7"
+                      />
                     </svg>
                   </button>
                 </div>
 
-                <div className="flex flex-col gap-1">
-                  {order?.mainItems && order.mainItems.length > 0 ? (
-                    order.mainItems.map((item: any, idx: number) => (
-                      <h3 key={idx} className="text-xl font-bold mb-1">
-                        {item.name} x{item.quantity}
-                      </h3>
-                    ))
-                  ) : (
-                    <h3 className="text-xl font-bold mb-1">ไม่พบรายการหลัก</h3>
-                  )}
-                </div>
+                {order.equipment?.needEquipment ? (
+                  <p className="text-white/80 text-md pb-1 flex items-center gap-1 flex-wrap">
+                    <svg
+                      className="w-4 h-4 shrink-0"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                      />
+                    </svg>
 
-                <p className="text-white/80 text-sm mb-4 flex items-center gap-1 flex-wrap">
-                  <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                  </svg>
-                  <span>
-                    เตา {order?.equipment?.stoveCount || 0}, กระทะ{" "}
-                    {order?.equipment?.panCount || 0}
-                  </span>
-                </p>
+                    <span>
+                      เตา {order?.equipment?.stoveCount || 0}, 
+                      กระทะ{" "}{order?.equipment?.panCount || 0},
+                      ถ่าน{" "}{order?.equipment?.charcoalCount || 0},
+                    </span>
+                  </p>
+                ) : (
+                  <p className="text-red-200 text-md pb-1 flex items-center gap-1 flex-wrap">
+                    <svg
+                      className="w-4 h-4 shrink-0"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                      />
+                    </svg>
+
+                    <span>
+                      ไม่รับเตาและกระทะ
+                    </span>
+                  </p>
+                )}
 
                 <div className="bg-black/20 rounded-xl p-4 mb-5 border border-white/10">
                   <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1">
+                    <div className="flex-1 text-left">
                       <p className="font-bold text-white text-base">
                         {order?.shipping?.recipient}
                       </p>
-                      <p className="text-xs text-white/60 mb-2">
+                      <p className="text-md text-white/60 mb-2">
                         เบอร์โทร: {order?.shipping?.phone}
                       </p>
-                      <span className="text-sm">📍</span>
-                      <span className="text-xs font-medium text-white/70">
-                        จัดส่งที่ {order?.shipping?.address}
-                      </span>
+                      <div className="flex items-start gap-1">
+                        <span className="text-md font-medium text-white/70">
+                          จัดส่งที่ {order?.shipping?.address}
+                        </span>
+                      </div>
                     </div>
                     <a
                       href={`tel:${order?.shipping?.phone}`}
                       className="shrink-0 bg-green-500 hover:bg-green-600 text-white p-3 rounded-full shadow-lg transition-all active:scale-95 flex items-center justify-center mt-1"
                       title="โทรหาลูกค้า"
                     >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                      <svg
+                        className="w-5 h-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="2"
+                          d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
+                        />
                       </svg>
                     </a>
                   </div>
@@ -303,8 +368,18 @@ export default function JobsPage() {
                               }
                               className="w-full bg-red-500/80 hover:bg-red-600/80 backdrop-blur-sm border border-white/20 text-white font-bold py-3.5 rounded-xl shadow-sm active:scale-95 transition-all flex items-center justify-center gap-2"
                             >
-                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" />
+                              <svg
+                                className="w-5 h-5"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth="2.5"
+                                  d="M6 18L18 6M6 6l12 12"
+                                />
                               </svg>
                               ปฏิเสธ
                             </button>
@@ -320,9 +395,24 @@ export default function JobsPage() {
                               }}
                               className="w-full bg-white/20 hover:bg-white/30 backdrop-blur-sm border border-white/40 text-white font-bold py-3.5 rounded-xl shadow-sm active:scale-95 transition-all flex items-center justify-center gap-2"
                             >
-                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                              <svg
+                                className="w-5 h-5"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth="2.5"
+                                  d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                                />
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth="2.5"
+                                  d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                                />
                               </svg>
                               นำทาง
                             </button>
@@ -339,16 +429,26 @@ export default function JobsPage() {
                           nextStatus: isShipping ? "delivered" : "shipping",
                         })
                       }
-                      className={`w-full bg-white dark:bg-gray-800 font-bold py-3.5 rounded-xl shadow-md border border-transparent dark:border-white/10 active:scale-95 transition-all flex items-center justify-center gap-2 ${
+                      className={`w-full bg-white/20 backdrop-blur-md border border-white/30 text-white font-bold px-3 py-3.5 rounded-xl shadow-md active:scale-95 transition-all flex items-center justify-center gap-2 ${
                         isShipping
-                          ? "text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-gray-700"
-                          : "text-orange-600 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-gray-700"
+                          ? "text-green-600 dark:text-green-200 hover:bg-green-50 dark:hover:bg-green-700"
+                          : "text-orange-600 dark:text-orange-200 hover:bg-orange-50 dark:hover:bg-orange-700"
                       }`}
                     >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
+                      <svg
+                        className="w-5 h-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="2.5"
+                          d="M5 13l4 4L19 7"
+                        />
                       </svg>
-                      {isShipping ? "ส่งสำเร็จ ปิดงาน" : "รับและไปส่ง"}
+                      {isShipping ? "ส่งสำเร็จ" : "รับออเดอร์"}
                     </button>
                   </div>
                 </div>
@@ -363,8 +463,18 @@ export default function JobsPage() {
         <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col justify-center transition-colors">
           <div className="flex items-center gap-2 mb-1">
             <div className="w-6 h-6 bg-blue-100 dark:bg-blue-500/20 rounded-full flex items-center justify-center text-blue-600 dark:text-blue-400">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M13 10V3L4 14h7v7l9-11h-7z"
+                />
               </svg>
             </div>
             <p className="text-gray-500 dark:text-gray-400 text-xs font-medium">
@@ -372,20 +482,37 @@ export default function JobsPage() {
             </p>
           </div>
           <p className="text-2xl font-bold text-gray-800 dark:text-gray-100 mt-1">
-            {summary.total_rounds} <span className="text-sm font-normal text-gray-500 dark:text-gray-400">ชุด</span>
+            {summary.total_rounds}{" "}
+            <span className="text-sm font-normal text-gray-500 dark:text-gray-400">
+              ชุด
+            </span>
           </p>
         </div>
 
         <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col justify-center transition-colors">
           <div className="flex items-center gap-2 mb-1">
             <div className="w-6 h-6 bg-green-100 dark:bg-green-500/20 rounded-full flex items-center justify-center text-green-600 dark:text-green-400">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
               </svg>
             </div>
-            <p className="text-gray-500 dark:text-gray-400 text-xs font-medium">ค่าออเดอร์สะสม</p>
+            <p className="text-gray-500 dark:text-gray-400 text-xs font-medium">
+              ค่าออเดอร์สะสม
+            </p>
           </div>
-          <p className="text-2xl font-bold text-green-600 dark:text-green-400 mt-1">฿ {summary.total_delivery_fee.toLocaleString()}</p>
+          <p className="text-2xl font-bold text-green-600 dark:text-green-400 mt-1">
+            ฿ {summary.total_delivery_fee.toLocaleString()}
+          </p>
         </div>
       </div>
 
@@ -426,7 +553,9 @@ export default function JobsPage() {
               <div className="mb-6 text-left">
                 <p className="text-gray-500 dark:text-gray-400 text-sm text-center mb-4 leading-relaxed px-2">
                   คุณแน่ใจหรือไม่ที่จะปฏิเสธงานนี้? <br />
-                  <span className="text-red-500 dark:text-red-400 text-xs">โปรดระบุเหตุผลเพื่อส่งงานกลับไปที่ส่วนกลาง</span>
+                  <span className="text-red-500 dark:text-red-400 text-xs">
+                    โปรดระบุเหตุผลเพื่อส่งงานกลับไปที่ส่วนกลาง
+                  </span>
                 </p>
 
                 {/* รายการตัวเลือกเหตุผล */}
@@ -500,7 +629,10 @@ export default function JobsPage() {
                       alert("กรุณาเลือกเหตุผลการปฏิเสธงานครับ");
                       return;
                     }
-                    if (refuseReason === "อื่นๆ" && !customRefuseReason.trim()) {
+                    if (
+                      refuseReason === "อื่นๆ" &&
+                      !customRefuseReason.trim()
+                    ) {
                       alert("กรุณาระบุเหตุผลเพิ่มเติมครับ");
                       return;
                     }

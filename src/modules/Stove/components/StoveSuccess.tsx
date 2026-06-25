@@ -1,6 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useEffect, useState } from "react";
+// src/modules/Stove/components/StoveSuccess.tsx
+import { useEffect, useState, useRef, useCallback } from "react";
 import { getStoveSuccess } from "../../api/api_jobs";
+
 // ฟังก์ชันดึงวันปัจจุบันฟอร์แมต YYYY-MM-DD แน่นอนไม่เพี้ยนตาม Timezone
 const getTodayDateString = () => {
   const d = new Date();
@@ -65,15 +67,21 @@ export default function StoveSuccess() {
     };
   }, [page, selectedDate, searchName, limit]);
 
-  // ฟังก์ชันตรวจจับการเลื่อนจอลงมาล่างสุดห่างไม่เกิน 100px เพื่อโหลดหน้าถัดไป
-  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
-    if (scrollHeight - scrollTop <= clientHeight + 100) {
-      if (hasMore && !isFetchingMore && !loading) {
-        setPage((prev) => prev + 1);
+  // 🌟 ฟังก์ชันแบบใหม่: ตรวจจับเมื่อผู้ใช้เลื่อนลงมาเห็นรายการสุดท้าย
+  const observer = useRef<IntersectionObserver | null>(null);
+  const lastJobElementRef = useCallback((node: HTMLDivElement | null) => {
+    if (loading || isFetchingMore) return;
+    if (observer.current) observer.current.disconnect();
+    
+    observer.current = new IntersectionObserver(entries => {
+      // ถ้าเห็นกล่องสุดท้ายแล้ว และยังมีข้อมูลให้โหลดต่อ ค่อยบวกหน้าเพิ่ม
+      if (entries[0].isIntersecting && hasMore) {
+        setPage(prev => prev + 1);
       }
-    }
-  };
+    });
+    
+    if (node) observer.current.observe(node);
+  }, [loading, isFetchingMore, hasMore]);
 
   // กดปุ่มแว่นขยายหรือ Enter เพื่อค้นหาชื่อ
   const handleSearch = () => {
@@ -92,8 +100,7 @@ export default function StoveSuccess() {
   };
 
   return (
-    // 🌟 เพิ่ม dark:bg-gray-900 และ dark:text-gray-100
-    <div className="h-full w-full flex flex-col bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 overflow-hidden animate-fade-in transition-colors duration-300">
+    <div className="w-full flex flex-col text-gray-800 dark:text-gray-100 animate-fade-in transition-colors duration-300">
       
       {/* 🌟 ส่วนควบคุมช่องค้นหาและปฏิทิน */}
       <div className="shrink-0 pb-4 bg-transparent">
@@ -117,17 +124,14 @@ export default function StoveSuccess() {
             </button>
           </div>
 
-          {/* 🌟 ตัวเลือกปฏิทินสไตล์แอปสมาร์ทโฟน */}
+          {/* ตัวเลือกปฏิทินสไตล์แอปสมาร์ทโฟน */}
           <div className="relative shrink-0 w-12 h-12 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 flex flex-col items-center justify-between overflow-hidden group hover:border-emerald-400 dark:hover:border-emerald-500 transition-colors">
-            {/* แถบเดือนด้านบน */}
             <div className="bg-red-500 w-full text-[10px] font-bold text-white text-center uppercase py-1px">
               {selectedDate ? new Date(selectedDate).toLocaleDateString('th-TH', { month: 'short' }) : "ALL"}
             </div>
-            {/* เลขวันที่ระบุตรงกลาง */}
             <div className="text-xl font-black text-gray-800 dark:text-white leading-none mb-1.5">
               {selectedDate ? new Date(selectedDate).getDate() : "-"}
             </div>
-            {/* ซ่อน HTML Date */}
             <input
               type="date"
               value={selectedDate}
@@ -148,7 +152,6 @@ export default function StoveSuccess() {
                 setPage(1);
                 setHasMore(true);
               }}
-              // 🌟 ปรับปุ่มล้างค้นหาในโหมดมืด
               className="text-xs font-bold text-red-500 dark:text-red-400 bg-red-50 dark:bg-red-500/10 px-3 py-1.5 rounded-lg active:scale-95 transition-colors"
             >
               ❌ ล้างการค้นหา (กลับสู่วันนี้)
@@ -157,11 +160,7 @@ export default function StoveSuccess() {
         )}
       </div>
 
-      {/* 🌟 พื้นที่เลื่อนดูรายการการ์ดเก็บเตาสำเร็จ */}
-      <div
-        onScroll={handleScroll}
-        className="flex-1 overflow-y-auto space-y-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] scrollbar-none pb-24"
-      >
+      <div className="space-y-4">
         {loading && page === 1 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center">
             <div className="w-10 h-10 border-4 border-gray-200 dark:border-gray-700 border-t-emerald-500 rounded-full animate-spin mb-4 shadow-sm"></div>
@@ -173,7 +172,7 @@ export default function StoveSuccess() {
             <p className="text-lg font-medium">ไม่พบรายการเก็บสำเร็จ</p>
           </div>
         ) : (
-          jobs.map((job) => {
+          jobs.map((job, index) => {
             const orderId = job.order_id ?? job.orderId ?? job.id;
             const recipient = job.shipping?.recipient ?? job.recipient ?? "ไม่ระบุชื่อ";
             const address = job.shipping?.address ?? job.address ?? "ไม่ระบุที่อยู่";
@@ -189,17 +188,15 @@ export default function StoveSuccess() {
             return (
               <div
                 key={orderId}
-                // 🌟 ปรับสีกล่องการ์ด
+                // 🌟 สำคัญ: แปะ ref ให้กับรายการอันสุดท้าย เพื่อดักจับการเลื่อนจอ
+                ref={index === jobs.length - 1 ? lastJobElementRef : null}
                 className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-4 flex items-center justify-between gap-3 animate-fade-in transition-colors"
               >
-                {/* 🌟 ซ้าย: ชื่อ ที่อยู่ และป้ายสถานะ */}
                 <div className="flex-1 min-w-0 pr-2">
                   <div className="flex items-center gap-2 mb-1.5">
-                    {/* 🌟 บังคับสีข้อความให้เข้ม/สว่างตามโหมด */}
                     <h2 className="font-bold text-gray-800 dark:text-gray-100 text-[15px] flex-1 min-w-0 truncate">
                       คุณ {recipient}
                     </h2>
-                    {/* 🌟 ปรับป้ายสถานะ ครบ/ไม่ครบ */}
                     <span className={`px-2 py-0.5 rounded text-[10px] font-bold shrink-0 transition-colors ${
                       isComplete 
                         ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' 
@@ -220,9 +217,7 @@ export default function StoveSuccess() {
                   )}
                 </div>
 
-                {/* 🌟 ขวา: สรุปยอดเตา/กระทะ และรหัสออเดอร์ */}
                 <div className="shrink-0 text-right flex flex-col items-end">
-                  {/* 🌟 ปรับสีกล่องยอดเตา */}
                   <div className="text-[12px] font-black text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-500/10 px-3 py-1.5 rounded-lg border border-emerald-100 dark:border-emerald-500/20 transition-colors">
                     เตา {collectedStoves} / กระทะ {collectedPans}
                   </div>
@@ -235,7 +230,7 @@ export default function StoveSuccess() {
           })
         )}
 
-        {/* จุดแสดงสถานะ Loading อันเล็กๆ */}
+        {/* จุดแสดงสถานะ Loading อันเล็กๆ ตอนเลื่อนจอลง */}
         {isFetchingMore && hasMore && (
           <div className="py-6 flex flex-col items-center justify-center">
             <div className="inline-block w-6 h-6 border-4 border-gray-200 dark:border-gray-700 border-t-emerald-500 rounded-full animate-spin shadow-sm"></div>

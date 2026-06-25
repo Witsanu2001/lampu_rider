@@ -3,11 +3,11 @@ import { getFreshToken } from "../../shared/infra/auth/token";
 const apiUrl = import.meta.env.VITE_API_URL;
 
 
-export async function getStove(): Promise<any[]> {
+export const getStove = async (page = 1, limit = 5) => {
 
     const token = await getFreshToken();
 
-    const response = await fetch(`${apiUrl}/api/jobs/stove_rider`, {
+    const response = await fetch(`${apiUrl}/api/jobs/stove_rider?page=${page}&limit=${limit}`, {
         method: "GET",
         headers: {
             "Content-Type": "application/json",

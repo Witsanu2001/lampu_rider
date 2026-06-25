@@ -7,10 +7,7 @@ interface HeaderProps {
 }
 
 export default function Header({ user }: HeaderProps) {
-  // 🌟 1. ใช้ฟังก์ชันใน useState เพื่อเช็กค่าเริ่มต้นตั้งแต่ตอนแรกเลย (Lazy Initialization)
-  // วิธีนี้จะรันแค่ครั้งเดียวตอนโหลด Component ทำให้ไม่ต้องไป set state ใน useEffect
   const [isDarkMode, setIsDarkMode] = useState(() => {
-    // ใส่ try-catch หรือ typeof window ไว้กันพังกรณีเอาไปทำ SSR ในอนาคต
     if (typeof window === "undefined") return false;
     
     const savedTheme = localStorage.getItem("theme");
@@ -20,7 +17,6 @@ export default function Header({ user }: HeaderProps) {
     return window.matchMedia("(prefers-color-scheme: dark)").matches;
   });
 
-  // 🌟 2. ใช้ useEffect เฉพาะกับการจัดการ DOM (Side Effect) เมื่อ State เปลี่ยนแปลง
   useEffect(() => {
     if (isDarkMode) {
       document.documentElement.classList.add("dark");
@@ -30,8 +26,7 @@ export default function Header({ user }: HeaderProps) {
       localStorage.setItem("theme", "light");
     }
   }, [isDarkMode]);
-
-  // 🌟 3. ฟังก์ชันสลับโหมด ตอนนี้แค่สลับค่า boolean ก็พอ
+  
   const toggleTheme = () => {
     setIsDarkMode((prev) => !prev);
   };

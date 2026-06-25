@@ -7,7 +7,6 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Header from "./Header";
 import BottomNav from "./BottomNav";
 import LocalLogin from "./LocalLogin";
-import ErrorBoundary from "./ErrorBoundary";
 import HistoryPage from "../../modules/history/HistoryPage";
 import StovesPage from "../../modules/Stove/StovesPage";
 import JobsPage from "../../modules/Job/JobsPage";
@@ -192,20 +191,17 @@ export default function App() {
   // 4. ถ้าล็อกอินสำเร็จแล้ว Render หน้าหลักของแอป
   return (
     <BrowserRouter>
-      {/* 🌟 เพิ่ม dark:bg-gray-900 และ transition-colors */}
-      <div className="mx-auto max-w-md w-full min-h-svh bg-gray-50 dark:bg-gray-900 flex flex-col relative shadow-2xl overflow-hidden transition-colors duration-300">
+      <div className="mx-auto max-w-md w-full h-svh bg-gray-50 dark:bg-gray-900 flex flex-col relative shadow-2xl overflow-hidden transition-colors duration-300">
         <Header user={user} setUser={setUser} />
 
         <main className="flex-1 overflow-y-auto pb-20 scroll-smooth">
-          <ErrorBoundary>
-            <Routes>
-              <Route path="/" element={<JobsPage />} />
-              <Route path="/history" element={<HistoryPage />} />
-              <Route path="/stove" element={<StovesPage />} />
-              <Route path="/job_detail/:orderId" element={<JobsDetail />} />
-              <Route path="*" element={<JobsPage />} />
-            </Routes>
-          </ErrorBoundary>
+          <Routes>
+            <Route path="/" element={<JobsPage />} />
+            <Route path="/history" element={<HistoryPage />} />
+            <Route path="/stove" element={<StovesPage />} />
+            <Route path="/job_detail/:orderId" element={<JobsDetail />} />
+            <Route path="*" element={<JobsPage />} />
+          </Routes>
         </main>
 
         <BottomNav

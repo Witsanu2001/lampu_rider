@@ -1,3 +1,4 @@
+// src/modules/Stove/StovesPage.tsx
 import { useState } from "react";
 import StovePending from "./components/StovePending";
 import StoveSuccess from "./components/StoveSuccess";
@@ -6,13 +7,11 @@ export default function StovesPage() {
   const [activeTab, setActiveTab] = useState<"pending" | "success">("pending");
 
   return (
-    // 🌟 เพิ่ม dark:bg-gray-900 และ dark:text-gray-100 พร้อม transition-colors
-    <div className="h-full w-full flex flex-col bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 overflow-hidden transition-colors duration-300">
+    <div className="w-full flex flex-col bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 transition-colors duration-300">
       
-      {/* 🌟 Header & Tabs */}
-      <div className="shrink-0 px-5 pt-5 pb-4 border-b border-gray-200 dark:border-gray-800 z-10 bg-white dark:bg-gray-900 shadow-sm transition-colors duration-300">
+      {/* 🌟 Header & Tabs (ตั้งค่า Sticky เกาะขอบบน) */}
+      <div className="sticky top-0 px-5 pt-5 pb-4 border-b border-gray-200 dark:border-gray-800 z-40 bg-white dark:bg-gray-900 shadow-sm transition-colors duration-300">
 
-        {/* 🌟 ปรับสีพื้นหลังของกล่อง Tab */}
         <div className="flex bg-gray-100/80 dark:bg-gray-800/80 p-1.5 rounded-2xl shadow-inner border border-gray-200/50 dark:border-gray-700/50 transition-colors">
           <button
             onClick={() => setActiveTab("pending")}
@@ -43,8 +42,7 @@ export default function StovesPage() {
         </div>
       </div>
 
-      {/* 🌟 Content (สลับ Component ตาม Tab) */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 [&::-webkit-scrollbar]:hidden bg-gray-50/50 dark:bg-gray-900/50 pb-24 transition-colors duration-300">
+      <div className="px-4 py-4 bg-gray-50/50 dark:bg-gray-900/50 transition-colors duration-300">
         {activeTab === "pending" ? <StovePending /> : <StoveSuccess />}
       </div>
 

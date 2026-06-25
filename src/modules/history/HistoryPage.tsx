@@ -167,7 +167,7 @@ export default function HistoryPage() {
       {/* 🌟 Content Scroll */}
       <div
         onScroll={handleScroll}
-        className="flex-1 overflow-y-auto px-4 py-4 space-y-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] scrollbar-none bg-gray-50/50 dark:bg-gray-900/50 pb-24 transition-colors duration-300"
+        className="flex-1 overflow-y-auto px-4 py-4 space-y-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] scrollbar-none bg-gray-50/50 dark:bg-gray-900/50 transition-colors duration-300"
       >
         {loading && page === 1 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center">
